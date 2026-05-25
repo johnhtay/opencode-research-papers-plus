@@ -7,20 +7,20 @@
 
 ![screenshot](./src/screenshots/screenshot.jpg)
 
-An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool. This is an AI-facing tool, not a slash command — ask the AI to search for papers and it will call the tool for you.
+An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool. You do not type a slash command — you ask the AI naturally and it calls the tool for you.
 
 Install. Restart. Ask for papers. It works.
 
 ## Features
 
-- No API keys required. Uses arXiv for fresh preprints and OpenAlex for broader scholarly metadata, citation counts, and open-access links.
-- Smart `auto` source routing — arXiv for `latest`, OpenAlex for `top_cited` and `trending`, both merged when available.
-- Output is markdown with title, authors, date, PDF link, abstract, and citation count where available.
-- Filter by `latest`, `trending`, or `top_cited`.
-- Narrow results to the past week, month, or year — uses server-side filtering where the API supports it, with client-side fallback.
-- `strict` mode applies anchor + concept-group filtering to reduce loosely matched results.
-- Respects arXiv's rate limit (one request per 3 seconds).
-- Source routing with fallback: if one source fails or is rate-limited, the other handles the request transparently.
+- No API keys needed. arXiv covers fresh preprints, OpenAlex covers broader scholarly metadata, citation counts, and open-access links.
+- Smart source routing — arXiv for `latest` papers, OpenAlex for `top_cited` and `trending`. Both run together with duplicates merged.
+- Markdown output with title, authors, date, PDF link, abstract, and citation counts where available.
+- Filter by recency (`latest`, `trending`) or citation impact (`top_cited`).
+- Narrow results to the past week, month, or year.
+- `strict` mode uses anchor + concept-group filtering to cut down loosely matched results.
+- If one source goes down or gets rate-limited, the other keeps going.
+- arXiv requests are spaced 3 seconds apart to respect their public API terms.
 
 ## Installation
 
@@ -38,7 +38,7 @@ Restart opencode. The tool registers automatically.
 
 ### Updating
 
-Opencode caches plugin packages and does not auto-update them on restart. When a new version is published, clear the cache before restarting:
+Opencode caches plugin packages and does not pull new versions on restart. After updating, clear the cache first:
 
 **Windows (PowerShell):**
 ```powershell
@@ -50,11 +50,11 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\opencode\packages\opencode-
 rm -rf ~/.cache/opencode/packages/opencode-research-papers@latest
 ```
 
-Then restart opencode and it will pull the latest version.
+Then restart opencode.
 
 ## Usage
 
-This is an AI tool — you don't type `/research-papers`. Instead, ask the AI naturally:
+This is a tool the AI calls — you do not invoke it directly. Just ask naturally:
 
 > "Find the latest papers on Image Segmentation"
 
@@ -66,7 +66,7 @@ This is an AI tool — you don't type `/research-papers`. Instead, ask the AI na
 
 ## Configuration
 
-You can pass options as a tuple:
+Options as a tuple:
 
 ```json
 ["opencode-research-papers", {
@@ -78,33 +78,33 @@ You can pass options as a tuple:
 | Option | Default | What it does |
 |--------|---------|-------------|
 | `defaultMaxResults` | `10` | How many results to return (1 to 50) |
-| `defaultSource` | `"auto"` | Source routing: `auto`, `arxiv`, or `openalex` |
+| `defaultSource` | `"auto"` | Source: `auto`, `arxiv`, or `openalex` |
 
 ### Source routing
 
 The `auto` default picks the best source for each filter:
 
-| Filter | Primary source | Fallback |
-|--------|---------------|----------|
+| Filter | Primary | Fallback |
+|--------|---------|----------|
 | `latest` | arXiv | OpenAlex |
 | `top_cited` | OpenAlex | arXiv |
 | `trending` | OpenAlex | arXiv |
 
-You can override with `source: "arxiv"` or `source: "openalex"` to force a single source.
+Force a single source with `source: "arxiv"` or `source: "openalex"`.
 
 ## Data Sources
 
 ### arXiv
 
-Used for fresh preprints, especially AI, CS, math, and physics. Provides direct PDF links and clean metadata. No signup required. The plugin enforces arXiv's public API rate limit of one request per 3 seconds.
+Fresh preprints in AI, CS, math, and physics. Direct PDF links, clean metadata, no signup required. The plugin spaces out requests to respect arXiv's public API terms.
 
 ### OpenAlex
 
-Used for broader scholarly search, citation counts, DOI metadata, and open-access links. Basic search works without an API key at 10 requests per second.
+Broader scholarly search — citation counts, DOI metadata, open-access links. Works at 10 requests per second with no API key.
 
 ## Error Handling
 
-If one source is down or rate limited, the plugin shows what the other source returned along with the specific HTTP error. If both fail, you get a single consolidated message. No crashes.
+If one source is down or rate-limited, the plugin shows what the other returned and tells you which error occurred. If both fail, you get one consolidated message. Nothing crashes.
 
 ## License
 
@@ -112,10 +112,10 @@ MIT
 
 ## Roadmap
 
-Potential future additions (no timeline committed):
+Things I might add eventually:
 
-- **GitHub paper-list repos**: Search for curated repository lists (e.g. `scene-text-detection-recognition-papers`) alongside paper results — useful for finding community-maintained paper collections on a topic.
-- **Duplicate detection**: Deduplicate papers that appear in both arXiv and OpenAlex results more intelligently than title normalization.
-- **Synonym expansion**: Expand query terms (e.g. GAN → cGAN, WGAN, StyleGAN) for stricter query matching.
-- **Semantic similarity scoring**: Use embeddings or cross-encoder reranking for stricter mode instead of keyword matching.
-- **OpenAlex abstract retrieval for arXiv IDs**: Cross-reference arXiv papers with OpenAlex to get citation counts for arXiv-sourced results.
+- **GitHub paper-list repos** — Find curated repository lists on a topic (e.g. `scene-text-detection-recognition-papers`) alongside paper results. Useful for community-maintained collections.
+- **Better deduplication** — Title normalization is rough; something smarter could avoid showing the same paper twice.
+- **Synonym expansion** — Query expansion for common terms (GAN → cGAN, WGAN, StyleGAN) to improve recall in `strict` mode.
+- **Semantic strict mode** — Use embeddings or cross-encoder reranking instead of keyword matching for better relevance filtering.
+- **Citation counts for arXiv papers** — Cross-reference arXiv results with OpenAlex to pull citation data.
