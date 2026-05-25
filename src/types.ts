@@ -2,7 +2,7 @@ export interface PaperResult {
   title: string;
   authors: string[];
   published: string; // ISO date YYYY-MM-DD
-  source: "arXiv" | "Papers with Code";
+  source: "arXiv" | "Semantic Scholar";
   pdfUrl?: string;
   codeUrl?: string;
   abstract?: string;
@@ -12,9 +12,7 @@ export interface PaperResult {
 
 export interface PluginOptions {
   defaultMaxResults?: number;
-  defaultSource?: "arxiv" | "paperswithcode" | "both";
-  arxivRateLimitMs?: number;
-  cacheTtlMinutes?: number;
+  defaultSource?: "arxiv" | "semantic_scholar" | "both";
 }
 
 export type FilterType = "latest" | "trending" | "top_cited";

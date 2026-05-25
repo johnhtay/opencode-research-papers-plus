@@ -4,6 +4,7 @@ An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool, le
 
 ## Features
 
+- **Zero API keys required** — both data sources offer free, unauthenticated search endpoints
 - **One natural-language command:** *"Find me trending papers on Scene Text Recognition"*
 - **Multi-source search:** Queries both arXiv and Semantic Scholar simultaneously
 - **Smart merging:** Deduplicates results and surfaces the best papers from each source
@@ -44,30 +45,28 @@ You can pass options via the tuple form in `opencode.json`:
 ```json
 ["opencode-research-papers", {
   "default_max_results": 15,
-  "default_source": "both",
-  "arxiv_rate_limit_ms": 3000,
-  "cache_ttl_minutes": 60
+  "default_source": "both"
 }]
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `default_max_results` | `10` | Default result cap |
+| `default_max_results` | `10` | Default result cap (1–50) |
 | `default_source` | `"both"` | Default data source (`arxiv`, `semantic_scholar`, `both`) |
-| `arxiv_rate_limit_ms` | `3000` | Delay between arXiv API calls |
-| `cache_ttl_minutes` | `60` | How long to cache API responses |
 
 ## Data Sources
 
 ### arXiv
-Uses the [arXiv Atom API](http://export.arxiv.org/api/query) to search by keyword and sort by submission date.
+Uses the public [arXiv Atom API](http://export.arxiv.org/api/query) to search by keyword and sort by submission date. No authentication required.
 
 ### Semantic Scholar
-Uses the [Semantic Scholar Graph API](https://api.semanticscholar.org/) to search with citation counts and open-access PDF links.
+Uses the public [Semantic Scholar Graph API](https://api.semanticscholar.org/) to search with citation counts and open-access PDF links. No authentication required for basic usage.
+
+> **Note:** Semantic Scholar's unauthenticated endpoint has a low rate limit. If you see frequent 429 errors, you can request a free API key at [semanticscholar.org/product/api](https://www.semanticscholar.org/product/api) and the plugin will support it in a future update.
 
 ## Error Handling
 
-If one source is unavailable, the plugin gracefully falls back to the other and includes a warning note in the output.
+If one source is unavailable (network error or rate limit), the plugin gracefully falls back to the other and includes a warning note in the output. You will never get a hard crash.
 
 ## License
 
