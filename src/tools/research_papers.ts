@@ -33,7 +33,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       filter: tool.schema.enum(["latest", "trending", "top_cited"]).default("latest").describe("Sorting/filtering strategy"),
       max_results: tool.schema.number().min(1).max(50).default(defaultMaxResults).describe("Maximum number of papers to return"),
       date_range: tool.schema.enum(["week", "month", "year", "all"]).optional().describe("Restrict results to a time window"),
-      strict: tool.schema.boolean().default(false).describe("When true, requires query terms in the paper title (not just abstract)"),
+      strict: tool.schema.boolean().default(false).describe("When true, requires most query concepts in title or abstract. Refines semantic results rather than replacing them."),
     },
     execute: async (args, _context) => {
       const maxResults = args.max_results;
@@ -77,8 +77,8 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       annotateMatches(oaResults, args.query);
 
       if (args.strict) {
-        arxivResults = arxivResults.filter((p) => p.matchedIn?.includes("title"));
-        oaResults = oaResults.filter((p) => p.matchedIn?.includes("title"));
+        arxivResults = strictFilter(arxivResults, args.query);
+        oaResults = strictFilter(oaResults, args.query);
       }
 
       const merged = mergeAndDeduplicate(arxivResults, oaResults, routing);
@@ -258,6 +258,23 @@ function annotateMatches(papers: PaperResult[], query: string): void {
       paper.matchedIn = uniqueFields.join(", ") + " (" + uniqueTerms.join(", ") + ")";
     }
   }
+}
+
+function strictFilter(papers: PaperResult[], query: string): PaperResult[] {
+  const terms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+  if (terms.length === 0) return papers;
+
+  const minMatches = Math.max(1, Math.ceil(terms.length * 0.6));
+
+  return papers.filter((paper) => {
+    const ti = paper.title.toLowerCase();
+    const ab = (paper.abstract || "").toLowerCase();
+    let count = 0;
+    for (const term of terms) {
+      if (ti.includes(term) || ab.includes(term)) count++;
+    }
+    return count >= minMatches;
+  });
 }
 
 function yearParam(): string {
