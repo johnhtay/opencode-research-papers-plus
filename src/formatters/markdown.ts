@@ -4,7 +4,8 @@ export function formatResults(
   query: string,
   filter: string,
   results: PaperResult[],
-  dateRange?: string
+  dateRange?: string,
+  sourcesUsed?: string,
 ): string {
   if (results.length === 0) {
     const dateMsg = dateRange && dateRange !== "all" ? ` from the past ${dateRange}` : "";
@@ -14,10 +15,11 @@ export function formatResults(
   const lines: string[] = [];
   lines.push(`## Research Papers: ${query}`);
   lines.push("");
-  const filterLine = dateRange && dateRange !== "all"
-    ? `**Filter:** ${filter} | **Range:** past ${dateRange} | **Results:** ${results.length}`
-    : `**Filter:** ${filter} | **Results:** ${results.length}`;
-  lines.push(filterLine);
+  const parts = [`**Filter:** ${filter}`];
+  if (dateRange && dateRange !== "all") parts.push(`**Range:** past ${dateRange}`);
+  parts.push(`**Results:** ${results.length}`);
+  if (sourcesUsed) parts.push(`**via:** ${sourcesUsed}`);
+  lines.push(parts.join(" | "));
   lines.push("");
 
   for (let i = 0; i < results.length; i++) {

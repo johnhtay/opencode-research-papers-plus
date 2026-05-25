@@ -43,6 +43,13 @@ describe("formatResults", () => {
     expect(output).toContain("**Range:** past month");
   });
 
+  it("shows sourced via in header when provided", () => {
+    const results = [makePaper({ title: "A Paper" })];
+    const output = formatResults("ml", "latest", results, undefined, "arXiv + OpenAlex");
+
+    expect(output).toContain("**via:** arXiv + OpenAlex");
+  });
+
   it("formats a single paper with all fields", () => {
     const results = [
       makePaper({
