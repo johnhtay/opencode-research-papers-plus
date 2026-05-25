@@ -1,6 +1,6 @@
 {
   "name": "opencode-research-papers",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Opencode plugin to fetch latest and trending research papers from arXiv and Semantic Scholar",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
