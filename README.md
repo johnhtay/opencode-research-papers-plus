@@ -1,14 +1,15 @@
 # opencode-research-papers
 
-An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool. Describe a computer science field and it pulls the latest, trending, or most cited papers from arXiv and Semantic Scholar.
+An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool. This is an AI-facing tool, not a slash command — ask the AI to search for papers and it will call the tool for you.
 
 ## Features
 
 - No API keys needed. Both sources have free, public search endpoints.
-- Asks both arXiv and Semantic Scholar at the same time and merges the results, skipping duplicates.
+- Queries arXiv and Semantic Scholar in parallel and merges results, skipping duplicates.
 - Output is markdown with title, authors, date, PDF link, abstract, and citation count where available.
 - Filter by `latest`, `trending`, or `top_cited`.
-- Narrow results to the past week, month, or year.
+- Narrow results to the past week, month, or year (client-side filtering).
+- Retries with exponential backoff when Semantic Scholar rate-limits.
 
 ## Installation
 
@@ -22,11 +23,11 @@ Add this to your `opencode.json`:
 }
 ```
 
-Restart opencode. The `research_papers` tool should show up in your tool list.
+Restart opencode. The tool registers automatically.
 
 ## Usage
 
-Try something like:
+This is an AI tool — you don't type `/research-papers`. Instead, ask the AI naturally:
 
 > "Find the latest papers on Image Segmentation"
 
@@ -66,7 +67,9 @@ The unauthenticated endpoint has a tight rate limit. If you start seeing 429 err
 
 ## Error Handling
 
-If one source is down or rate limited, the plugin shows what the other source returned and adds a note at the bottom. No crashes, no dropped responses.
+If one source is down or rate limited, the plugin shows what the other source returned along with the specific HTTP error (e.g., `Semantic Scholar API 429: Too Many Requests`). If both fail, you get a single consolidated message with the error from each. No crashes, no dropped responses.
+
+Semantic Scholar returns 429s aggressively on the free tier. The plugin retries up to two times with a 1s/2s backoff, but heavy usage will still hit the limit.
 
 ## License
 

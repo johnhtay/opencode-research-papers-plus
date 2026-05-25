@@ -116,7 +116,7 @@ describe("searchSemanticScholar", () => {
     expect(url).toContain("fields=title%2Cauthors%2Cyear%2CcitationCount%2CopenAccessPdf%2Cabstract%2CexternalIds");
   });
 
-  it("throws on non-ok response", async () => {
+  it("throws with status code in error message", async () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 429,
@@ -124,7 +124,7 @@ describe("searchSemanticScholar", () => {
       json: () => Promise.resolve({}),
     });
 
-    await expect(searchSemanticScholar("test", 10)).rejects.toThrow("Semantic Scholar API error");
+    await expect(searchSemanticScholar("test", 10)).rejects.toThrow("Semantic Scholar API 429: Too Many Requests");
   });
 
   it("sets Accept header for JSON", async () => {

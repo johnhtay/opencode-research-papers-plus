@@ -99,19 +99,11 @@ describe("searchArxiv", () => {
     expect(url).toContain("max_results=5");
   });
 
-  it("includes date range in query when provided", async () => {
-    await searchArxiv("test", 10, "submittedDate", "week");
+  it("does not include date filter in query", async () => {
+    await searchArxiv("test", 10, "submittedDate");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("submittedDate%3A%5B");
-    expect(url).toContain("TO");
-  });
-
-  it("does not include date filter when range is 'all'", async () => {
-    await searchArxiv("test", 10, "submittedDate", "all");
-
-    const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).not.toContain("submittedDate%3A%5B");
+    expect(url).not.toContain("submittedDate:");
   });
 
   it("uses lastUpdatedDate sort when specified", async () => {
@@ -121,7 +113,7 @@ describe("searchArxiv", () => {
     expect(url).toContain("sortBy=lastUpdatedDate");
   });
 
-  it("throws on non-ok response", async () => {
+  it("throws with status code in error message", async () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 500,
@@ -129,7 +121,7 @@ describe("searchArxiv", () => {
       text: () => Promise.resolve(""),
     });
 
-    await expect(searchArxiv("test", 10)).rejects.toThrow("arXiv API error");
+    await expect(searchArxiv("test", 10)).rejects.toThrow("arXiv API 500: Internal Server Error");
   });
 
   it("sets Accept header for Atom XML", async () => {

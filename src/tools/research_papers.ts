@@ -21,34 +21,33 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
     execute: async (args, _context) => {
       const maxResults = args.max_results;
       const source = args.source;
+      const dateRange = args.date_range ?? "all";
 
       let arxivResults: PaperResult[] = [];
       let s2Results: PaperResult[] = [];
-      let arxivFailed = false;
-      let s2Failed = false;
+      let arxivError: string | null = null;
+      let s2Error: string | null = null;
 
       try {
         if (source === "arxiv" || source === "both") {
           const sortBy = args.filter === "latest" ? "submittedDate" : "lastUpdatedDate";
-          arxivResults = await searchArxiv(
-            args.query,
-            maxResults,
-            sortBy,
-            args.date_range
-          );
+          arxivResults = await searchArxiv(args.query, maxResults, sortBy);
         }
-      } catch {
-        arxivFailed = true;
-        arxivResults = [];
+      } catch (err) {
+        arxivError = err instanceof Error ? err.message : String(err);
       }
 
       try {
         if (source === "semantic_scholar" || source === "both") {
           s2Results = await searchSemanticScholar(args.query, maxResults, args.filter);
         }
-      } catch {
-        s2Failed = true;
-        s2Results = [];
+      } catch (err) {
+        s2Error = err instanceof Error ? err.message : String(err);
+      }
+
+      if (dateRange !== "all") {
+        arxivResults = filterByDateRange(arxivResults, dateRange);
+        s2Results = filterByDateRange(s2Results, dateRange);
       }
 
       const merged = mergeAndDeduplicate(arxivResults, s2Results, args.filter);
@@ -56,18 +55,48 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
 
       let output = formatResults(args.query, args.filter, limited);
 
-      if (arxivFailed && (source === "arxiv" || source === "both")) {
-        output +=
-          "\n\n_⚠️ Note: arXiv results could not be retrieved. Showing Semantic Scholar results only._";
-      }
-      if (s2Failed && (source === "semantic_scholar" || source === "both")) {
-        output +=
-          "\n\n_⚠️ Note: Semantic Scholar results could not be retrieved. Showing arXiv results only._";
+      const warnings = buildWarnings(arxivError, s2Error, source, limited.length);
+      if (warnings) {
+        output += warnings;
       }
 
       return output;
     },
   });
+}
+
+function buildWarnings(
+  arxivError: string | null,
+  s2Error: string | null,
+  source: string,
+  resultCount: number,
+): string {
+  const parts: string[] = [];
+
+  const arxivRequested = source === "arxiv" || source === "both";
+  const s2Requested = source === "semantic_scholar" || source === "both";
+
+  if (arxivError && s2Error && source === "both") {
+    parts.push(`\n\n_⚠️ Both sources failed.`);
+    parts.push(`\n- arXiv: ${arxivError}`);
+    parts.push(`\n- Semantic Scholar: ${s2Error}`);
+    if (resultCount === 0) {
+      parts.push(`\n\nTry a different query or wait before retrying._`);
+    }
+  } else {
+    if (arxivError && arxivRequested) {
+      parts.push(`\n\n_⚠️ arXiv unavailable (${arxivError}).`);
+      if (s2Requested) parts.push(" Showing Semantic Scholar results only._");
+      else parts.push("_");
+    }
+    if (s2Error && s2Requested) {
+      parts.push(`\n\n_⚠️ Semantic Scholar unavailable (${s2Error}).`);
+      if (arxivRequested) parts.push(" Showing arXiv results only._");
+      else parts.push("_");
+    }
+  }
+
+  return parts.join("");
 }
 
 export function mergeAndDeduplicate(
@@ -101,4 +130,40 @@ export function mergeAndDeduplicate(
 
 export function normalizeTitle(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function filterByDateRange(papers: PaperResult[], dateRange: string): PaperResult[] {
+  if (!dateRange || dateRange === "all") return papers;
+
+  const now = new Date();
+  const cutoff = new Date();
+
+  switch (dateRange) {
+    case "week":
+      cutoff.setDate(now.getDate() - 7);
+      break;
+    case "month":
+      cutoff.setMonth(now.getMonth() - 1);
+      break;
+    case "year":
+      cutoff.setFullYear(now.getFullYear() - 1);
+      break;
+    default:
+      return papers;
+  }
+
+  return papers.filter((paper) => {
+    const pub = paper.published;
+    if (pub === "Unknown") return true;
+
+    if (pub.length === 4) {
+      return parseInt(pub) >= cutoff.getFullYear();
+    }
+
+    try {
+      return new Date(pub) >= cutoff;
+    } catch {
+      return true;
+    }
+  });
 }

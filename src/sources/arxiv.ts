@@ -6,30 +6,9 @@ const ARXIV_API_URL = "http://export.arxiv.org/api/query";
 export async function searchArxiv(
   query: string,
   maxResults: number,
-  sortBy: "submittedDate" | "lastUpdatedDate" = "submittedDate",
-  dateRange?: "week" | "month" | "year" | "all"
+  sortBy: "submittedDate" | "lastUpdatedDate" = "submittedDate"
 ): Promise<PaperResult[]> {
-  // Build search query with optional date filtering
-  let searchQuery = `all:${query}`;
-
-  if (dateRange && dateRange !== "all") {
-    const now = new Date();
-    const past = new Date();
-    switch (dateRange) {
-      case "week":
-        past.setDate(now.getDate() - 7);
-        break;
-      case "month":
-        past.setMonth(now.getMonth() - 1);
-        break;
-      case "year":
-        past.setFullYear(now.getFullYear() - 1);
-        break;
-    }
-    const rangeQuery = `submittedDate:[${formatDateShort(past)} TO ${formatDateShort(now)}]`;
-    searchQuery = `(${searchQuery}) AND ${rangeQuery}`;
-  }
-
+  const searchQuery = `all:${query}`;
   const url = `${ARXIV_API_URL}?search_query=${encodeURIComponent(searchQuery)}&sortBy=${sortBy}&sortOrder=descending&max_results=${maxResults}`;
 
   const response = await fetch(url, {
@@ -37,7 +16,7 @@ export async function searchArxiv(
   });
 
   if (!response.ok) {
-    throw new Error(`arXiv API error: ${response.status} ${response.statusText}`);
+    throw new Error(`arXiv API ${response.status}: ${response.statusText}`);
   }
 
   const xmlText = await response.text();
@@ -121,11 +100,4 @@ function formatDate(dateStr: string | undefined): string {
 
 function sanitizeText(text: string): string {
   return text.replace(/\s+/g, " ").trim();
-}
-
-function formatDateShort(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}${m}${d}`;
 }
