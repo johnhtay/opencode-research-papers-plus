@@ -8,8 +8,16 @@ export async function searchArxiv(
   maxResults: number,
   sortBy: "submittedDate" | "lastUpdatedDate" = "submittedDate"
 ): Promise<PaperResult[]> {
-  const searchQuery = `all:${query}`;
-  const url = `${ARXIV_API_URL}?search_query=${encodeURIComponent(searchQuery)}&sortBy=${sortBy}&sortOrder=descending&max_results=${maxResults}`;
+  const terms = query.split(/\s+/).filter(Boolean);
+  const params = new URLSearchParams();
+  for (const term of terms) {
+    params.append("search_query", `all:${term}`);
+  }
+  params.append("sortBy", sortBy);
+  params.append("sortOrder", "descending");
+  params.append("max_results", String(maxResults));
+
+  const url = `${ARXIV_API_URL}?${params.toString()}`;
 
   const response = await fetch(url, {
     headers: { Accept: "application/atom+xml" },
