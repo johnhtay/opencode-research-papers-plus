@@ -15,15 +15,18 @@ function sortByFilter(filter: string): string {
   }
 }
 
-async function fetchWithRetry(url: string, attempt: number = 0): Promise<Response> {
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-  });
+async function fetchWithRetry(url: string, apiKey?: string, attempt: number = 0): Promise<Response> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (apiKey) {
+    headers["x-api-key"] = apiKey;
+  }
+
+  const response = await fetch(url, { headers });
 
   if (response.status === 429 && attempt < MAX_RETRIES) {
     const delay = Math.pow(2, attempt) * 1000;
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, attempt + 1);
+    return fetchWithRetry(url, apiKey, attempt + 1);
   }
 
   return response;
@@ -34,7 +37,8 @@ export async function searchSemanticScholar(
   maxResults: number,
   filter: string = "latest",
   fields: string = "title,authors,year,citationCount,openAccessPdf,abstract,externalIds",
-  year?: string
+  year?: string,
+  apiKey?: string
 ): Promise<PaperResult[]> {
   const sort = sortByFilter(filter);
   let url = `${S2_API_URL}?query=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&limit=${maxResults}&sort=${encodeURIComponent(sort)}`;
@@ -42,7 +46,7 @@ export async function searchSemanticScholar(
     url += `&year=${encodeURIComponent(year)}`;
   }
 
-  const response = await fetchWithRetry(url);
+  const response = await fetchWithRetry(url, apiKey);
 
   if (!response.ok) {
     throw new Error(`Semantic Scholar API ${response.status}: ${response.statusText}`);

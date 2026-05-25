@@ -133,4 +133,11 @@ describe("searchSemanticScholar", () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(init.headers).toEqual({ Accept: "application/json" });
   });
+
+  it("includes x-api-key header when API key is provided", async () => {
+    await searchSemanticScholar("test", 10, "latest", undefined, undefined, "my-api-key");
+
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>)["x-api-key"]).toBe("my-api-key");
+  });
 });

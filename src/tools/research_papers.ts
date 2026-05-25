@@ -7,6 +7,7 @@ import { formatResults } from "../formatters/markdown.js";
 export function createResearchPapersTool(options: PluginOptions = {}): ToolDefinition {
   const defaultMaxResults = options.defaultMaxResults ?? 10;
   const defaultSource = options.defaultSource ?? "both";
+  const s2ApiKey = options.semanticScholarApiKey;
 
   return tool({
     description:
@@ -42,7 +43,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       try {
         if (source === "semantic_scholar" || source === "both") {
           const s2Year = dateRange === "year" ? yearParam() : undefined;
-          s2Results = await searchSemanticScholar(args.query, maxResults, args.filter, undefined, s2Year);
+          s2Results = await searchSemanticScholar(args.query, maxResults, args.filter, undefined, s2Year, s2ApiKey);
         }
       } catch (err) {
         s2Error = err instanceof Error ? err.message : String(err);

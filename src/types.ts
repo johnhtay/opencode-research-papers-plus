@@ -13,6 +13,7 @@ export interface PaperResult {
 export interface PluginOptions {
   defaultMaxResults?: number;
   defaultSource?: "arxiv" | "semantic_scholar" | "both";
+  semanticScholarApiKey?: string;
 }
 
 export type FilterType = "latest" | "trending" | "top_cited";
