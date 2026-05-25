@@ -1,35 +1,10 @@
-import { z } from "zod";
 import { tool, type ToolDefinition } from "@opencode-ai/plugin";
 import type { PaperResult, PluginOptions } from "../types.js";
 import { searchArxiv } from "../sources/arxiv.js";
 import { searchSemanticScholar } from "../sources/semantic-scholar.js";
 import { formatResults } from "../formatters/markdown.js";
 
-const argsSchema = z.object({
-  query: z.string().describe("The research field or topic, e.g. 'Scene Text Recognition'"),
-  source: z
-    .enum(["arxiv", "semantic_scholar", "both"])
-    .default("both")
-    .describe("Which source(s) to query"),
-  filter: z
-    .enum(["latest", "trending", "top_cited"])
-    .default("latest")
-    .describe("Sorting/filtering strategy"),
-  max_results: z
-    .number()
-    .min(1)
-    .max(50)
-    .default(10)
-    .describe("Maximum number of papers to return"),
-  date_range: z
-    .enum(["week", "month", "year", "all"])
-    .optional()
-    .describe("Restrict results to a time window"),
-});
-
-type ResearchPapersArgs = z.infer<typeof argsSchema>;
-
-export function createResearchPapersTool(options: PluginOptions = {}) {
+export function createResearchPapersTool(options: PluginOptions = {}): ToolDefinition {
   const defaultMaxResults = options.defaultMaxResults ?? 10;
   const defaultSource = options.defaultSource ?? "both";
 
@@ -38,19 +13,19 @@ export function createResearchPapersTool(options: PluginOptions = {}) {
       "Search for latest, trending, or top-cited research papers on a computer science topic from arXiv and Semantic Scholar. Returns a formatted list with titles, authors, dates, PDF links, and citation counts.",
     args: {
       query: tool.schema.string().describe("The research field or topic, e.g. 'Scene Text Recognition'"),
-      source: tool.schema.enum(["arxiv", "semantic_scholar", "both"]).default("both").describe("Which source(s) to query"),
+      source: tool.schema.enum(["arxiv", "semantic_scholar", "both"]).default(defaultSource).describe("Which source(s) to query"),
       filter: tool.schema.enum(["latest", "trending", "top_cited"]).default("latest").describe("Sorting/filtering strategy"),
-      max_results: tool.schema.number().min(1).max(50).default(10).describe("Maximum number of papers to return"),
+      max_results: tool.schema.number().min(1).max(50).default(defaultMaxResults).describe("Maximum number of papers to return"),
       date_range: tool.schema.enum(["week", "month", "year", "all"]).optional().describe("Restrict results to a time window"),
-    } as any,
-    execute: async (rawArgs: any, _context) => {
-      // Re-validate with our known schema for type safety
-      const args = argsSchema.parse(rawArgs);
-      const maxResults = args.max_results ?? defaultMaxResults;
-      const source = args.source ?? defaultSource;
+    },
+    execute: async (args, _context) => {
+      const maxResults = args.max_results;
+      const source = args.source;
 
       let arxivResults: PaperResult[] = [];
       let s2Results: PaperResult[] = [];
+      let arxivFailed = false;
+      let s2Failed = false;
 
       try {
         if (source === "arxiv" || source === "both") {
@@ -63,14 +38,16 @@ export function createResearchPapersTool(options: PluginOptions = {}) {
           );
         }
       } catch (_err) {
+        arxivFailed = true;
         arxivResults = [];
       }
 
       try {
         if (source === "semantic_scholar" || source === "both") {
-          s2Results = await searchSemanticScholar(args.query, maxResults);
+          s2Results = await searchSemanticScholar(args.query, maxResults, args.filter);
         }
       } catch (_err) {
+        s2Failed = true;
         s2Results = [];
       }
 
@@ -79,18 +56,18 @@ export function createResearchPapersTool(options: PluginOptions = {}) {
 
       let output = formatResults(args.query, args.filter, limited);
 
-      if (arxivResults.length === 0 && (source === "arxiv" || source === "both")) {
+      if (arxivFailed && (source === "arxiv" || source === "both")) {
         output +=
           "\n\n_⚠️ Note: arXiv results could not be retrieved. Showing Semantic Scholar results only._";
       }
-      if (s2Results.length === 0 && (source === "semantic_scholar" || source === "both")) {
+      if (s2Failed && (source === "semantic_scholar" || source === "both")) {
         output +=
           "\n\n_⚠️ Note: Semantic Scholar results could not be retrieved. Showing arXiv results only._";
       }
 
       return output;
     },
-  }) as ToolDefinition;
+  });
 }
 
 function mergeAndDeduplicate(

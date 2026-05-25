@@ -26,7 +26,7 @@ export async function searchArxiv(
         past.setFullYear(now.getFullYear() - 1);
         break;
     }
-    const rangeQuery = `submittedDate:[${past.toISOString().slice(0, 10)} TO ${now.toISOString().slice(0, 10)}]`;
+    const rangeQuery = `submittedDate:[${formatDateShort(past)} TO ${formatDateShort(now)}]`;
     searchQuery = `(${searchQuery}) AND ${rangeQuery}`;
   }
 
@@ -121,4 +121,11 @@ function formatDate(dateStr: string | undefined): string {
 
 function sanitizeText(text: string): string {
   return text.replace(/\s+/g, " ").trim();
+}
+
+function formatDateShort(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}${m}${d}`;
 }

@@ -2,12 +2,26 @@ import type { PaperResult } from "../types.js";
 
 const S2_API_URL = "https://api.semanticscholar.org/graph/v1/paper/search";
 
+function sortByFilter(filter: string): string {
+  switch (filter) {
+    case "top_cited":
+      return "citationCount:desc";
+    case "trending":
+      return "citationCount:desc";
+    case "latest":
+    default:
+      return "publicationDate:desc";
+  }
+}
+
 export async function searchSemanticScholar(
   query: string,
   maxResults: number,
+  filter: string = "latest",
   fields: string = "title,authors,year,citationCount,openAccessPdf,abstract,externalIds"
 ): Promise<PaperResult[]> {
-  const url = `${S2_API_URL}?query=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&limit=${maxResults}`;
+  const sort = sortByFilter(filter);
+  const url = `${S2_API_URL}?query=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&limit=${maxResults}&sort=${sort}`;
 
   const response = await fetch(url, {
     headers: { Accept: "application/json" },
