@@ -18,5 +18,5 @@ export interface PluginOptions {
 }
 
 export type FilterType = "latest" | "trending" | "top_cited";
-export type SourceType = "arxiv" | "paperswithcode" | "both";
+export type SourceType = "arxiv" | "semantic_scholar" | "both";
 export type DateRange = "week" | "month" | "year" | "all";
