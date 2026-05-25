@@ -33,7 +33,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       filter: tool.schema.enum(["latest", "trending", "top_cited"]).default("latest").describe("Sorting/filtering strategy"),
       max_results: tool.schema.number().min(1).max(50).default(defaultMaxResults).describe("Maximum number of papers to return"),
       date_range: tool.schema.enum(["week", "month", "year", "all"]).optional().describe("Restrict results to a time window"),
-      strict: tool.schema.boolean().default(false).describe("When true, requires most query concepts in title or abstract. Refines semantic results rather than replacing them."),
+      strict: tool.schema.boolean().default(false).describe("When true, applies anchor + concept-group filtering to reduce loosely matched results."),
     },
     execute: async (args, _context) => {
       const maxResults = args.max_results;
@@ -264,16 +264,37 @@ function strictFilter(papers: PaperResult[], query: string): PaperResult[] {
   const terms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
   if (terms.length === 0) return papers;
 
-  const minMatches = Math.max(1, Math.ceil(terms.length * 0.6));
+  const anchorSynonyms: Record<string, string[]> = {
+    retinal: ["retinal", "fundus", "retina", "ophthalmic", "eye"],
+    brain: ["brain", "cerebral", "neural", "neuro"],
+    medical: ["medical", "clinical", "healthcare"],
+    graph: ["graph", "gnn", "graph neural"],
+    remote: ["remote", "satellite", "aerial", "sensing"],
+    scene: ["scene", "scene text", "text detection"],
+  };
+
+  const anchorGroup = anchorSynonyms[terms[0]] ?? [terms[0]];
+  const minTotal = Math.max(1, Math.ceil(terms.length * 0.66));
 
   return papers.filter((paper) => {
     const ti = paper.title.toLowerCase();
     const ab = (paper.abstract || "").toLowerCase();
-    let count = 0;
+
+    let anchorMatched = false;
+    let totalMatched = 0;
+
     for (const term of terms) {
-      if (ti.includes(term) || ab.includes(term)) count++;
+      if (ti.includes(term) || ab.includes(term)) {
+        totalMatched++;
+        if (anchorGroup.includes(term)) anchorMatched = true;
+      }
     }
-    return count >= minMatches;
+
+    if (terms.length >= 3) {
+      return anchorMatched && totalMatched >= minTotal;
+    }
+
+    return totalMatched >= minTotal;
   });
 }
 
