@@ -70,7 +70,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
   });
 }
 
-function mergeAndDeduplicate(
+export function mergeAndDeduplicate(
   arxiv: PaperResult[],
   s2: PaperResult[],
   filter: string
@@ -99,6 +99,6 @@ function mergeAndDeduplicate(
   return merged;
 }
 
-function normalizeTitle(title: string): string {
+export function normalizeTitle(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]/g, "");
 }

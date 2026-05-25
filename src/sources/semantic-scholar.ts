@@ -35,7 +35,7 @@ export async function searchSemanticScholar(
   return parseS2Response(data);
 }
 
-function parseS2Response(data: any): PaperResult[] {
+export function parseS2Response(data: any): PaperResult[] {
   if (!data || !data.data || !Array.isArray(data.data)) {
     return [];
   }

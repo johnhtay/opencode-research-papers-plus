@@ -44,7 +44,7 @@ export async function searchArxiv(
   return parseArxivAtom(xmlText);
 }
 
-function parseArxivAtom(xmlText: string): PaperResult[] {
+export function parseArxivAtom(xmlText: string): PaperResult[] {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
