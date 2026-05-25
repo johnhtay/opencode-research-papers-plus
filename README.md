@@ -18,7 +18,9 @@ Install. Restart. Ask for papers. It works.
 - Output is markdown with title, authors, date, PDF link, abstract, and citation count where available.
 - Filter by `latest`, `trending`, or `top_cited`.
 - Narrow results to the past week, month, or year — uses server-side filtering where the API supports it, with client-side fallback.
+- `strict` mode applies anchor + concept-group filtering to reduce loosely matched results.
 - Respects arXiv's rate limit (one request per 3 seconds).
+- Source routing with fallback: if one source fails or is rate-limited, the other handles the request transparently.
 
 ## Installation
 
@@ -107,3 +109,13 @@ If one source is down or rate limited, the plugin shows what the other source re
 ## License
 
 MIT
+
+## Roadmap
+
+Potential future additions (no timeline committed):
+
+- **GitHub paper-list repos**: Search for curated repository lists (e.g. `scene-text-detection-recognition-papers`) alongside paper results — useful for finding community-maintained paper collections on a topic.
+- **Duplicate detection**: Deduplicate papers that appear in both arXiv and OpenAlex results more intelligently than title normalization.
+- **Synonym expansion**: Expand query terms (e.g. GAN → cGAN, WGAN, StyleGAN) for stricter query matching.
+- **Semantic similarity scoring**: Use embeddings or cross-encoder reranking for stricter mode instead of keyword matching.
+- **OpenAlex abstract retrieval for arXiv IDs**: Cross-reference arXiv papers with OpenAlex to get citation counts for arXiv-sourced results.
