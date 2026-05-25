@@ -8,6 +8,7 @@ export interface PaperResult {
   abstract?: string;
   citations?: number;
   arxivId?: string;
+  matchedIn?: string;
 }
 
 export interface PluginOptions {

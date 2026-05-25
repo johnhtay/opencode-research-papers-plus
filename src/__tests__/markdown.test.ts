@@ -43,6 +43,20 @@ describe("formatResults", () => {
     expect(output).toContain("**Range:** past month");
   });
 
+  it("shows matched evidence when present", () => {
+    const results = [makePaper({ title: "GAN Paper", matchedIn: "title, abstract" })];
+    const output = formatResults("gan", "latest", results);
+
+    expect(output).toContain("- **Matched:** title, abstract");
+  });
+
+  it("omits matched line when not present", () => {
+    const results = [makePaper({ title: "GAN Paper" })];
+    const output = formatResults("gan", "latest", results);
+
+    expect(output).not.toContain("Matched:");
+  });
+
   it("shows sourced via in header when provided", () => {
     const results = [makePaper({ title: "A Paper" })];
     const output = formatResults("ml", "latest", results, undefined, "arXiv + OpenAlex");

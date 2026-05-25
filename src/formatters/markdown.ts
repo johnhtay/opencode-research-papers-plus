@@ -35,6 +35,9 @@ export function formatResults(
     lines.push(`- **Authors:** ${authorText || "N/A"}`);
     lines.push(`- **Published:** ${paper.published}`);
     lines.push(`- **Source:** ${paper.source}`);
+    if (paper.matchedIn) {
+      lines.push(`- **Matched:** ${paper.matchedIn}`);
+    }
     if (paper.citations !== undefined) {
       lines.push(`- **Citations:** ${paper.citations}`);
     }

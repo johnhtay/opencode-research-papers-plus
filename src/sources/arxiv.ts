@@ -8,11 +8,20 @@ export async function searchArxiv(
   maxResults: number,
   sortBy: "submittedDate" | "lastUpdatedDate" = "submittedDate"
 ): Promise<PaperResult[]> {
-  const terms = query.split(/\s+/).filter(Boolean);
   const params = new URLSearchParams();
+
+  // Phrase match for the full query (Lucene: all:"query text")
+  const trimmed = query.trim();
+  if (trimmed.includes(" ")) {
+    params.append("search_query", `all:"${trimmed}"`);
+  }
+
+  // Individual term matches as AND fallback
+  const terms = trimmed.split(/\s+/).filter(Boolean);
   for (const term of terms) {
     params.append("search_query", `all:${term}`);
   }
+
   params.append("sortBy", sortBy);
   params.append("sortOrder", "descending");
   params.append("max_results", String(maxResults));

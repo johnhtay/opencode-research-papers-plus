@@ -72,6 +72,9 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
         oaResults = filterByDateRange(oaResults, dateRange);
       }
 
+      annotateMatches(arxivResults, args.query);
+      annotateMatches(oaResults, args.query);
+
       const merged = mergeAndDeduplicate(arxivResults, oaResults, routing);
       const limited = merged.slice(0, maxResults);
 
@@ -227,6 +230,26 @@ function filterByDateRange(papers: PaperResult[], dateRange: string): PaperResul
       return true;
     }
   });
+}
+
+function annotateMatches(papers: PaperResult[], query: string): void {
+  const terms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+
+  for (const paper of papers) {
+    const ti = paper.title.toLowerCase();
+    const ab = (paper.abstract || "").toLowerCase();
+    const parts: string[] = [];
+
+    for (const term of terms) {
+      if (ti.includes(term)) parts.push("title");
+      if (ab.includes(term)) parts.push("abstract");
+    }
+
+    const unique = [...new Set(parts)];
+    if (unique.length > 0) {
+      paper.matchedIn = unique.join(", ");
+    }
+  }
 }
 
 function yearParam(): string {
