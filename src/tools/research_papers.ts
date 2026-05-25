@@ -33,6 +33,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       filter: tool.schema.enum(["latest", "trending", "top_cited"]).default("latest").describe("Sorting/filtering strategy"),
       max_results: tool.schema.number().min(1).max(50).default(defaultMaxResults).describe("Maximum number of papers to return"),
       date_range: tool.schema.enum(["week", "month", "year", "all"]).optional().describe("Restrict results to a time window"),
+      strict: tool.schema.boolean().default(false).describe("When true, requires query terms in the paper title (not just abstract)"),
     },
     execute: async (args, _context) => {
       const maxResults = args.max_results;
@@ -74,6 +75,11 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
 
       annotateMatches(arxivResults, args.query);
       annotateMatches(oaResults, args.query);
+
+      if (args.strict) {
+        arxivResults = arxivResults.filter((p) => p.matchedIn?.includes("title"));
+        oaResults = oaResults.filter((p) => p.matchedIn?.includes("title"));
+      }
 
       const merged = mergeAndDeduplicate(arxivResults, oaResults, routing);
       const limited = merged.slice(0, maxResults);
@@ -238,16 +244,18 @@ function annotateMatches(papers: PaperResult[], query: string): void {
   for (const paper of papers) {
     const ti = paper.title.toLowerCase();
     const ab = (paper.abstract || "").toLowerCase();
-    const parts: string[] = [];
+    const fields: string[] = [];
+    const matchedTerms: string[] = [];
 
     for (const term of terms) {
-      if (ti.includes(term)) parts.push("title");
-      if (ab.includes(term)) parts.push("abstract");
+      if (ti.includes(term)) { fields.push("title"); matchedTerms.push(term); }
+      else if (ab.includes(term)) { fields.push("abstract"); matchedTerms.push(term); }
     }
 
-    const unique = [...new Set(parts)];
-    if (unique.length > 0) {
-      paper.matchedIn = unique.join(", ");
+    const uniqueFields = [...new Set(fields)];
+    const uniqueTerms = [...new Set(matchedTerms)];
+    if (uniqueFields.length > 0) {
+      paper.matchedIn = uniqueFields.join(", ") + " (" + uniqueTerms.join(", ") + ")";
     }
   }
 }

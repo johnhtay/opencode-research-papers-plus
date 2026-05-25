@@ -43,6 +43,7 @@ export function formatResults(
     }
     if (paper.arxivId) {
       lines.push(`- **arXiv ID:** ${paper.arxivId}`);
+      lines.push(`- **arXiv:** https://arxiv.org/abs/${paper.arxivId}`);
     }
     if (paper.pdfUrl) {
       lines.push(`- **PDF:** ${paper.pdfUrl}`);

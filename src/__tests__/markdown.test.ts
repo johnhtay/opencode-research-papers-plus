@@ -44,10 +44,10 @@ describe("formatResults", () => {
   });
 
   it("shows matched evidence when present", () => {
-    const results = [makePaper({ title: "GAN Paper", matchedIn: "title, abstract" })];
+    const results = [makePaper({ title: "GAN Paper", matchedIn: "title, abstract (gan, adversarial)" })];
     const output = formatResults("gan", "latest", results);
 
-    expect(output).toContain("- **Matched:** title, abstract");
+    expect(output).toContain("- **Matched:** title, abstract (gan, adversarial)");
   });
 
   it("omits matched line when not present", () => {
@@ -86,6 +86,7 @@ describe("formatResults", () => {
     expect(output).toContain("- **Source:** arXiv");
     expect(output).toContain("- **Citations:** 42");
     expect(output).toContain("- **arXiv ID:** 2406.00001");
+    expect(output).toContain("- **arXiv:** https://arxiv.org/abs/2406.00001");
     expect(output).toContain("- **PDF:** https://arxiv.org/pdf/2406.00001");
     expect(output).toContain("- **Code:** https://github.com/example/repo");
     expect(output).toContain("- **Abstract:** A comprehensive study of recent advances.");
