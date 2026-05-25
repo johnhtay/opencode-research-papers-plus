@@ -81,11 +81,11 @@ function buildWarnings(
   const s2Requested = source === "semantic_scholar" || source === "both";
 
   if (arxivError && s2Error && source === "both") {
-    parts.push(`\n\n_⚠️ Both sources failed.`);
+    parts.push(`\n\n_⚠️ Both sources failed._`);
     parts.push(`\n- arXiv: ${arxivError}`);
     parts.push(`\n- Semantic Scholar: ${s2Error}`);
     if (resultCount === 0) {
-      parts.push(`\n\nTry a different query or wait before retrying._`);
+      parts.push(`\n\n_Try a different query or wait before retrying._`);
     }
   } else {
     if (arxivError && arxivRequested) {
@@ -139,18 +139,17 @@ export function normalizeTitle(title: string): string {
 function filterByDateRange(papers: PaperResult[], dateRange: string): PaperResult[] {
   if (!dateRange || dateRange === "all") return papers;
 
-  const now = new Date();
   const cutoff = new Date();
 
   switch (dateRange) {
     case "week":
-      cutoff.setDate(now.getDate() - 7);
+      cutoff.setDate(cutoff.getDate() - 7);
       break;
     case "month":
-      cutoff.setMonth(now.getMonth() - 1);
+      cutoff.setMonth(cutoff.getMonth() - 1);
       break;
     case "year":
-      cutoff.setFullYear(now.getFullYear() - 1);
+      cutoff.setFullYear(cutoff.getFullYear() - 1);
       break;
     default:
       return papers;

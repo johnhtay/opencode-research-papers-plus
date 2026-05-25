@@ -10,12 +10,13 @@ An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool. Th
 
 ## Features
 
-- No API keys needed. Both sources have free, public search endpoints.
+- arXiv works with no signup. Semantic Scholar works without an API key but is rate-limited to 1 req/s; add a free key to get 100 req/s.
 - Queries arXiv and Semantic Scholar in parallel and merges results, skipping duplicates.
 - Output is markdown with title, authors, date, PDF link, abstract, and citation count where available.
 - Filter by `latest`, `trending`, or `top_cited`.
-- Narrow results to the past week, month, or year (client-side filtering).
+- Narrow results to the past week, month, or year — uses server-side filtering where the API supports it, with client-side fallback.
 - Retries with exponential backoff when Semantic Scholar rate-limits.
+- Optional Semantic Scholar API key via `semanticScholarApiKey` config option.
 
 ## Installation
 
@@ -77,7 +78,7 @@ The free tier has a tight rate limit (1 req/s). If you see frequent 429 errors, 
 
 If one source is down or rate limited, the plugin shows what the other source returned along with the specific HTTP error (e.g., `Semantic Scholar API 429: Too Many Requests`). If both fail, you get a single consolidated message with the error from each. No crashes, no dropped responses.
 
-Semantic Scholar returns 429s aggressively on the free tier. The plugin retries up to two times with a 1s/2s backoff, but heavy usage will still hit the limit.
+Semantic Scholar returns 429s aggressively on the free tier. The plugin retries up to two times with a 1s/2s backoff. To eliminate rate limiting entirely, pass a free API key via the `semanticScholarApiKey` config option.
 
 ## License
 
