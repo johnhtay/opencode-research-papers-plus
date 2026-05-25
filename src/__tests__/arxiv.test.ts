@@ -93,7 +93,7 @@ describe("searchArxiv", () => {
     await searchArxiv("deep learning", 5, "submittedDate");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("search_query=all:deep%20learning");
+    expect(url).toContain("search_query=all%3Adeep%20learning");
     expect(url).toContain("sortBy=submittedDate");
     expect(url).toContain("sortOrder=descending");
     expect(url).toContain("max_results=5");
@@ -103,7 +103,7 @@ describe("searchArxiv", () => {
     await searchArxiv("test", 10, "submittedDate", "week");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("submittedDate:[");
+    expect(url).toContain("submittedDate%3A%5B");
     expect(url).toContain("TO");
   });
 
@@ -111,7 +111,7 @@ describe("searchArxiv", () => {
     await searchArxiv("test", 10, "submittedDate", "all");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).not.toContain("submittedDate:[");
+    expect(url).not.toContain("submittedDate%3A%5B");
   });
 
   it("uses lastUpdatedDate sort when specified", async () => {

@@ -92,21 +92,21 @@ describe("searchSemanticScholar", () => {
     const url = fetchMock.mock.calls[0][0] as string;
     expect(url).toContain("query=deep%20learning");
     expect(url).toContain("limit=10");
-    expect(url).toContain("sort=publicationDate:desc");
+    expect(url).toContain("sort=publicationDate%3Adesc");
   });
 
   it("uses citationCount:desc sort for top_cited filter", async () => {
     await searchSemanticScholar("transformers", 5, "top_cited");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("sort=citationCount:desc");
+    expect(url).toContain("sort=citationCount%3Adesc");
   });
 
   it("uses citationCount:desc sort for trending filter", async () => {
     await searchSemanticScholar("transformers", 5, "trending");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("sort=citationCount:desc");
+    expect(url).toContain("sort=citationCount%3Adesc");
   });
 
   it("includes fields parameter", async () => {

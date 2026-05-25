@@ -10,7 +10,7 @@ export async function searchArxiv(
   dateRange?: "week" | "month" | "year" | "all"
 ): Promise<PaperResult[]> {
   // Build search query with optional date filtering
-  let searchQuery = `all:${encodeURIComponent(query)}`;
+  let searchQuery = `all:${query}`;
 
   if (dateRange && dateRange !== "all") {
     const now = new Date();
@@ -30,7 +30,7 @@ export async function searchArxiv(
     searchQuery = `(${searchQuery}) AND ${rangeQuery}`;
   }
 
-  const url = `${ARXIV_API_URL}?search_query=${searchQuery}&sortBy=${sortBy}&sortOrder=descending&max_results=${maxResults}`;
+  const url = `${ARXIV_API_URL}?search_query=${encodeURIComponent(searchQuery)}&sortBy=${sortBy}&sortOrder=descending&max_results=${maxResults}`;
 
   const response = await fetch(url, {
     headers: { Accept: "application/atom+xml" },

@@ -21,7 +21,7 @@ export async function searchSemanticScholar(
   fields: string = "title,authors,year,citationCount,openAccessPdf,abstract,externalIds"
 ): Promise<PaperResult[]> {
   const sort = sortByFilter(filter);
-  const url = `${S2_API_URL}?query=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&limit=${maxResults}&sort=${sort}`;
+  const url = `${S2_API_URL}?query=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&limit=${maxResults}&sort=${encodeURIComponent(sort)}`;
 
   const response = await fetch(url, {
     headers: { Accept: "application/json" },
