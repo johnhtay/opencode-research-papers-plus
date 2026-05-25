@@ -1,20 +1,18 @@
 # opencode-research-papers
 
-An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool, letting you discover the latest, trending, and top-cited research papers from **arXiv** and **Semantic Scholar** by simply describing a computer science field.
+An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool. Describe a computer science field and it pulls the latest, trending, or most cited papers from arXiv and Semantic Scholar.
 
 ## Features
 
-- **Zero API keys required** — both data sources offer free, unauthenticated search endpoints
-- **One natural-language command:** *"Find me trending papers on Scene Text Recognition"*
-- **Multi-source search:** Queries both arXiv and Semantic Scholar simultaneously
-- **Smart merging:** Deduplicates results and surfaces the best papers from each source
-- **Structured output:** Clean markdown with title, authors, date, PDF link, abstract snippet, and citation count
-- **Flexible filters:** `latest`, `trending`, or `top_cited`
-- **Date range filtering:** Restrict to papers from the last week, month, year, or all time
+- No API keys needed. Both sources have free, public search endpoints.
+- Asks both arXiv and Semantic Scholar at the same time and merges the results, skipping duplicates.
+- Output is markdown with title, authors, date, PDF link, abstract, and citation count where available.
+- Filter by `latest`, `trending`, or `top_cited`.
+- Narrow results to the past week, month, or year.
 
 ## Installation
 
-Add to your `opencode.json`:
+Add this to your `opencode.json`:
 
 ```json
 {
@@ -24,11 +22,11 @@ Add to your `opencode.json`:
 }
 ```
 
-Then **restart opencode** for the plugin to load.
+Restart opencode. The `research_papers` tool should show up in your tool list.
 
 ## Usage
 
-Once installed, ask opencode naturally:
+Try something like:
 
 > "Find the latest papers on Image Segmentation"
 
@@ -40,7 +38,7 @@ Once installed, ask opencode naturally:
 
 ## Configuration
 
-You can pass options via the tuple form in `opencode.json`:
+You can pass options as a tuple:
 
 ```json
 ["opencode-research-papers", {
@@ -49,24 +47,26 @@ You can pass options via the tuple form in `opencode.json`:
 }]
 ```
 
-| Option | Default | Description |
+| Option | Default | What it does |
 |--------|---------|-------------|
-| `defaultMaxResults` | `10` | Default result cap (1–50) |
-| `defaultSource` | `"both"` | Default data source (`arxiv`, `semantic_scholar`, `both`) |
+| `defaultMaxResults` | `10` | How many results to return (1 to 50) |
+| `defaultSource` | `"both"` | Which source to search (`arxiv`, `semantic_scholar`, `both`) |
 
 ## Data Sources
 
 ### arXiv
-Uses the public [arXiv Atom API](http://export.arxiv.org/api/query) to search by keyword and sort by submission date. No authentication required.
+
+Uses the public [arXiv Atom API](http://export.arxiv.org/api/query). Searches by keyword and sorts by submission date. No signup required.
 
 ### Semantic Scholar
-Uses the public [Semantic Scholar Graph API](https://api.semanticscholar.org/) to search with citation counts and open-access PDF links. No authentication required for basic usage.
 
-> **Note:** Semantic Scholar's unauthenticated endpoint has a low rate limit. If you see frequent 429 errors, you can request a free API key at [semanticscholar.org/product/api](https://www.semanticscholar.org/product/api) and the plugin will support it in a future update.
+Uses the public [Semantic Scholar Graph API](https://api.semanticscholar.org/). Returns citation counts and open-access PDF links where the data is available.
+
+The unauthenticated endpoint has a tight rate limit. If you start seeing 429 errors, you can get a free API key at [semanticscholar.org/product/api](https://www.semanticscholar.org/product/api).
 
 ## Error Handling
 
-If one source is unavailable (network error or rate limit), the plugin gracefully falls back to the other and includes a warning note in the output. You will never get a hard crash.
+If one source is down or rate limited, the plugin shows what the other source returned and adds a note at the bottom. No crashes, no dropped responses.
 
 ## License
 
