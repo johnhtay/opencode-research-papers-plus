@@ -37,7 +37,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
             args.date_range
           );
         }
-      } catch (_err) {
+      } catch {
         arxivFailed = true;
         arxivResults = [];
       }
@@ -46,7 +46,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
         if (source === "semantic_scholar" || source === "both") {
           s2Results = await searchSemanticScholar(args.query, maxResults, args.filter);
         }
-      } catch (_err) {
+      } catch {
         s2Failed = true;
         s2Results = [];
       }
