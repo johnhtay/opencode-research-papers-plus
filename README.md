@@ -32,6 +32,22 @@ Add this to your `opencode.json`:
 
 Restart opencode. The tool registers automatically.
 
+### Updating
+
+Opencode caches plugin packages and does not auto-update them on restart. When a new version is published, clear the cache before restarting:
+
+**Windows (PowerShell):**
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\opencode\packages\opencode-research-papers@latest"
+```
+
+**macOS / Linux:**
+```bash
+rm -rf ~/.cache/opencode/packages/opencode-research-papers@latest
+```
+
+Then restart opencode and it will pull the latest version.
+
 ## Usage
 
 This is an AI tool — you don't type `/research-papers`. Instead, ask the AI naturally:
