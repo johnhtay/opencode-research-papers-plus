@@ -33,10 +33,14 @@ export async function searchSemanticScholar(
   query: string,
   maxResults: number,
   filter: string = "latest",
-  fields: string = "title,authors,year,citationCount,openAccessPdf,abstract,externalIds"
+  fields: string = "title,authors,year,citationCount,openAccessPdf,abstract,externalIds",
+  year?: string
 ): Promise<PaperResult[]> {
   const sort = sortByFilter(filter);
-  const url = `${S2_API_URL}?query=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&limit=${maxResults}&sort=${encodeURIComponent(sort)}`;
+  let url = `${S2_API_URL}?query=${encodeURIComponent(query)}&fields=${encodeURIComponent(fields)}&limit=${maxResults}&sort=${encodeURIComponent(sort)}`;
+  if (year) {
+    url += `&year=${encodeURIComponent(year)}`;
+  }
 
   const response = await fetchWithRetry(url);
 

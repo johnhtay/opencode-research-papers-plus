@@ -21,6 +21,12 @@ describe("formatResults", () => {
     expect(output).toContain("latest");
   });
 
+  it("includes date range in empty message when provided", () => {
+    const output = formatResults("computer vision", "latest", [], "week");
+
+    expect(output).toContain("from the past week");
+  });
+
   it("includes query and filter in header", () => {
     const results = [makePaper({ title: "A Great Paper" })];
     const output = formatResults("machine learning", "trending", results);
@@ -28,6 +34,13 @@ describe("formatResults", () => {
     expect(output).toContain("## Research Papers: machine learning");
     expect(output).toContain("**Filter:** trending");
     expect(output).toContain("**Results:** 1");
+  });
+
+  it("shows date range in header when provided", () => {
+    const results = [makePaper({ title: "A Great Paper" })];
+    const output = formatResults("ml", "latest", results, "month");
+
+    expect(output).toContain("**Range:** past month");
   });
 
   it("formats a single paper with all fields", () => {

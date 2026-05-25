@@ -3,16 +3,21 @@ import type { PaperResult } from "../types.js";
 export function formatResults(
   query: string,
   filter: string,
-  results: PaperResult[]
+  results: PaperResult[],
+  dateRange?: string
 ): string {
   if (results.length === 0) {
-    return `No research papers found for **${query}** with filter **${filter}**. Try broadening your query or changing the time range.`;
+    const dateMsg = dateRange && dateRange !== "all" ? ` from the past ${dateRange}` : "";
+    return `No research papers found for **${query}**${dateMsg} with filter **${filter}**. Try broadening your query or changing the time range.`;
   }
 
   const lines: string[] = [];
   lines.push(`## Research Papers: ${query}`);
   lines.push("");
-  lines.push(`**Filter:** ${filter} | **Results:** ${results.length}`);
+  const filterLine = dateRange && dateRange !== "all"
+    ? `**Filter:** ${filter} | **Range:** past ${dateRange} | **Results:** ${results.length}`
+    : `**Filter:** ${filter} | **Results:** ${results.length}`;
+  lines.push(filterLine);
   lines.push("");
 
   for (let i = 0; i < results.length; i++) {

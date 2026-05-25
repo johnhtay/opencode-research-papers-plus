@@ -23,6 +23,8 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       const source = args.source;
       const dateRange = args.date_range ?? "all";
 
+      const fetchMultiplier = dateRange !== "all" ? 3 : 1;
+
       let arxivResults: PaperResult[] = [];
       let s2Results: PaperResult[] = [];
       let arxivError: string | null = null;
@@ -31,7 +33,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       try {
         if (source === "arxiv" || source === "both") {
           const sortBy = args.filter === "latest" ? "submittedDate" : "lastUpdatedDate";
-          arxivResults = await searchArxiv(args.query, maxResults, sortBy);
+          arxivResults = await searchArxiv(args.query, maxResults * fetchMultiplier, sortBy);
         }
       } catch (err) {
         arxivError = err instanceof Error ? err.message : String(err);
@@ -39,7 +41,8 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
 
       try {
         if (source === "semantic_scholar" || source === "both") {
-          s2Results = await searchSemanticScholar(args.query, maxResults, args.filter);
+          const s2Year = dateRange === "year" ? yearParam() : undefined;
+          s2Results = await searchSemanticScholar(args.query, maxResults, args.filter, undefined, s2Year);
         }
       } catch (err) {
         s2Error = err instanceof Error ? err.message : String(err);
@@ -53,7 +56,7 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       const merged = mergeAndDeduplicate(arxivResults, s2Results, args.filter);
       const limited = merged.slice(0, maxResults);
 
-      let output = formatResults(args.query, args.filter, limited);
+      let output = formatResults(args.query, args.filter, limited, dateRange);
 
       const warnings = buildWarnings(arxivError, s2Error, source, limited.length);
       if (warnings) {
@@ -166,4 +169,9 @@ function filterByDateRange(papers: PaperResult[], dateRange: string): PaperResul
       return true;
     }
   });
+}
+
+function yearParam(): string {
+  const y = new Date().getFullYear();
+  return `${y - 1}-${y}`;
 }
