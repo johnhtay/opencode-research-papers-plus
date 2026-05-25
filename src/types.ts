@@ -1,8 +1,8 @@
 export interface PaperResult {
   title: string;
   authors: string[];
-  published: string; // ISO date YYYY-MM-DD
-  source: "arXiv" | "Semantic Scholar";
+  published: string;
+  source: "arXiv" | "OpenAlex";
   pdfUrl?: string;
   codeUrl?: string;
   abstract?: string;
@@ -12,10 +12,9 @@ export interface PaperResult {
 
 export interface PluginOptions {
   defaultMaxResults?: number;
-  defaultSource?: "arxiv" | "semantic_scholar" | "both";
-  semanticScholarApiKey?: string;
+  defaultSource?: "arxiv" | "openalex" | "auto";
 }
 
 export type FilterType = "latest" | "trending" | "top_cited";
-export type SourceType = "arxiv" | "semantic_scholar" | "both";
+export type SourceType = "arxiv" | "openalex" | "auto";
 export type DateRange = "week" | "month" | "year" | "all";

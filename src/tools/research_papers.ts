@@ -1,65 +1,82 @@
 import { tool, type ToolDefinition } from "@opencode-ai/plugin";
 import type { PaperResult, PluginOptions } from "../types.js";
 import { searchArxiv } from "../sources/arxiv.js";
-import { searchSemanticScholar } from "../sources/semantic-scholar.js";
+import { searchOpenAlex } from "../sources/openalex.js";
 import { formatResults } from "../formatters/markdown.js";
+
+let lastArxivRequest = 0;
+const ARXIV_COOLDOWN_MS = 3100;
+
+async function throttledSearchArxiv(
+  query: string,
+  maxResults: number,
+  sortBy: "submittedDate" | "lastUpdatedDate"
+): Promise<PaperResult[]> {
+  const elapsed = Date.now() - lastArxivRequest;
+  if (elapsed < ARXIV_COOLDOWN_MS) {
+    await new Promise((r) => setTimeout(r, ARXIV_COOLDOWN_MS - elapsed));
+  }
+  lastArxivRequest = Date.now();
+  return searchArxiv(query, maxResults, sortBy);
+}
 
 export function createResearchPapersTool(options: PluginOptions = {}): ToolDefinition {
   const defaultMaxResults = options.defaultMaxResults ?? 10;
-  const defaultSource = options.defaultSource ?? "both";
-  const s2ApiKey = options.semanticScholarApiKey;
+  const defaultSource = options.defaultSource ?? "auto";
 
   return tool({
     description:
-      "Search for latest, trending, or top-cited research papers on a computer science topic from arXiv and Semantic Scholar. Returns a formatted list with titles, authors, dates, PDF links, and citation counts.",
+      "Search for latest, trending, or top-cited research papers on a computer science topic from arXiv and OpenAlex. Returns a formatted list with titles, authors, dates, PDF links, and citation counts.",
     args: {
       query: tool.schema.string().describe("The research field or topic, e.g. 'Scene Text Recognition'"),
-      source: tool.schema.enum(["arxiv", "semantic_scholar", "both"]).default(defaultSource).describe("Which source(s) to query"),
+      source: tool.schema.enum(["arxiv", "openalex", "auto"]).default(defaultSource).describe("Which source(s) to query"),
       filter: tool.schema.enum(["latest", "trending", "top_cited"]).default("latest").describe("Sorting/filtering strategy"),
       max_results: tool.schema.number().min(1).max(50).default(defaultMaxResults).describe("Maximum number of papers to return"),
       date_range: tool.schema.enum(["week", "month", "year", "all"]).optional().describe("Restrict results to a time window"),
     },
     execute: async (args, _context) => {
       const maxResults = args.max_results;
-      const source = args.source;
       const dateRange = args.date_range ?? "all";
-
       const fetchMultiplier = dateRange !== "all" ? 3 : 1;
+      const routing = resolveRouting(args.source, args.filter);
 
       let arxivResults: PaperResult[] = [];
-      let s2Results: PaperResult[] = [];
+      let oaResults: PaperResult[] = [];
       let arxivError: string | null = null;
-      let s2Error: string | null = null;
+      let oaError: string | null = null;
 
-      try {
-        if (source === "arxiv" || source === "both") {
+      if (routing.useArxiv) {
+        try {
           const sortBy = args.filter === "latest" ? "submittedDate" : "lastUpdatedDate";
-          arxivResults = await searchArxiv(args.query, maxResults * fetchMultiplier, sortBy);
+          arxivResults = await throttledSearchArxiv(args.query, maxResults * fetchMultiplier, sortBy);
+        } catch (err) {
+          arxivError = err instanceof Error ? err.message : String(err);
         }
-      } catch (err) {
-        arxivError = err instanceof Error ? err.message : String(err);
       }
 
-      try {
-        if (source === "semantic_scholar" || source === "both") {
-          const s2Year = dateRange === "year" ? yearParam() : undefined;
-          s2Results = await searchSemanticScholar(args.query, maxResults, args.filter, undefined, s2Year, s2ApiKey);
+      if (routing.useOpenAlex) {
+        try {
+          const oaSort = args.filter === "top_cited" || args.filter === "trending"
+            ? "top_cited"
+            : "latest";
+          const oaYear = dateRange === "year" ? yearParam() : undefined;
+          oaResults = await searchOpenAlex(args.query, maxResults, oaSort, oaYear);
+        } catch (err) {
+          oaError = err instanceof Error ? err.message : String(err);
         }
-      } catch (err) {
-        s2Error = err instanceof Error ? err.message : String(err);
       }
 
       if (dateRange !== "all") {
         arxivResults = filterByDateRange(arxivResults, dateRange);
-        s2Results = filterByDateRange(s2Results, dateRange);
+        oaResults = filterByDateRange(oaResults, dateRange);
       }
 
-      const merged = mergeAndDeduplicate(arxivResults, s2Results, args.filter);
+      const merged = mergeAndDeduplicate(arxivResults, oaResults, routing);
       const limited = merged.slice(0, maxResults);
 
       let output = formatResults(args.query, args.filter, limited, dateRange);
 
-      const warnings = buildWarnings(arxivError, s2Error, source, limited.length);
+      const warnings = buildWarnings(arxivError, oaError, routing, limited.length);
       if (warnings) {
         output += warnings;
       }
@@ -69,33 +86,45 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
   });
 }
 
+type Routing = { useArxiv: boolean; useOpenAlex: boolean; arxivFirst: boolean };
+
+function resolveRouting(source: string, filter: string): Routing {
+  if (source === "arxiv") return { useArxiv: true, useOpenAlex: false, arxivFirst: true };
+  if (source === "openalex") return { useArxiv: false, useOpenAlex: true, arxivFirst: false };
+
+  // auto
+  const citeFilter = filter === "top_cited" || filter === "trending";
+  return {
+    useArxiv: true,
+    useOpenAlex: true,
+    arxivFirst: !citeFilter,
+  };
+}
+
 function buildWarnings(
   arxivError: string | null,
-  s2Error: string | null,
-  source: string,
+  oaError: string | null,
+  routing: Routing,
   resultCount: number,
 ): string {
   const parts: string[] = [];
 
-  const arxivRequested = source === "arxiv" || source === "both";
-  const s2Requested = source === "semantic_scholar" || source === "both";
-
-  if (arxivError && s2Error && source === "both") {
+  if (arxivError && oaError && routing.useArxiv && routing.useOpenAlex) {
     parts.push(`\n\n_⚠️ Both sources failed._`);
     parts.push(`\n- arXiv: ${arxivError}`);
-    parts.push(`\n- Semantic Scholar: ${s2Error}`);
+    parts.push(`\n- OpenAlex: ${oaError}`);
     if (resultCount === 0) {
       parts.push(`\n\n_Try a different query or wait before retrying._`);
     }
   } else {
-    if (arxivError && arxivRequested) {
+    if (arxivError && routing.useArxiv) {
       parts.push(`\n\n_⚠️ arXiv unavailable (${arxivError}).`);
-      if (s2Requested) parts.push(" Showing Semantic Scholar results only._");
+      if (routing.useOpenAlex) parts.push(" Showing OpenAlex results only._");
       else parts.push("_");
     }
-    if (s2Error && s2Requested) {
-      parts.push(`\n\n_⚠️ Semantic Scholar unavailable (${s2Error}).`);
-      if (arxivRequested) parts.push(" Showing arXiv results only._");
+    if (oaError && routing.useOpenAlex) {
+      parts.push(`\n\n_⚠️ OpenAlex unavailable (${oaError}).`);
+      if (routing.useArxiv) parts.push(" Showing arXiv results only._");
       else parts.push("_");
     }
   }
@@ -105,8 +134,8 @@ function buildWarnings(
 
 export function mergeAndDeduplicate(
   arxiv: PaperResult[],
-  s2: PaperResult[],
-  filter: string
+  oa: PaperResult[],
+  routing: Routing,
 ): PaperResult[] {
   const seen = new Set<string>();
   const merged: PaperResult[] = [];
@@ -121,12 +150,12 @@ export function mergeAndDeduplicate(
     }
   };
 
-  if (filter === "trending" || filter === "top_cited") {
-    addUnique(s2);
+  if (routing.arxivFirst) {
     addUnique(arxiv);
+    addUnique(oa);
   } else {
+    addUnique(oa);
     addUnique(arxiv);
-    addUnique(s2);
   }
 
   return merged;

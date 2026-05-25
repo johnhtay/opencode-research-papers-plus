@@ -4,19 +4,19 @@
 [![npm version](https://img.shields.io/npm/v/opencode-research-papers.svg)](https://www.npmjs.com/package/opencode-research-papers)
 [![CI](https://github.com/saim-x/opencode-research-papers/actions/workflows/ci.yml/badge.svg)](https://github.com/saim-x/opencode-research-papers/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![GitHub tag](https://img.shields.io/github/v/tag/saim-x/opencode-research-papers.svg)](https://github.com/saim-x/opencode-research-papers/tags)
 
 An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool. This is an AI-facing tool, not a slash command — ask the AI to search for papers and it will call the tool for you.
 
+Install. Restart. Ask for papers. It works.
+
 ## Features
 
-- arXiv works with no signup. Semantic Scholar works without an API key but is rate-limited to 1 req/s; add a free key to get 100 req/s.
-- Queries arXiv and Semantic Scholar in parallel and merges results, skipping duplicates.
+- No API keys required. Uses arXiv for fresh preprints and OpenAlex for broader scholarly metadata, citation counts, and open-access links.
+- Smart `auto` source routing — arXiv for `latest`, OpenAlex for `top_cited` and `trending`, both merged when available.
 - Output is markdown with title, authors, date, PDF link, abstract, and citation count where available.
 - Filter by `latest`, `trending`, or `top_cited`.
 - Narrow results to the past week, month, or year — uses server-side filtering where the API supports it, with client-side fallback.
-- Retries with exponential backoff when Semantic Scholar rate-limits.
-- Optional Semantic Scholar API key via `semanticScholarApiKey` config option.
+- Respects arXiv's rate limit (one request per 3 seconds).
 
 ## Installation
 
@@ -40,7 +40,7 @@ This is an AI tool — you don't type `/research-papers`. Instead, ask the AI na
 
 > "Show me trending Scene Text Recognition papers"
 
-> "Get top-cited Retinal Vessel Segmentation papers from arXiv only"
+> "Get top-cited Retinal Vessel Segmentation papers"
 
 > "Find 20 latest papers on Generative Adversarial Networks from the last month"
 
@@ -51,34 +51,40 @@ You can pass options as a tuple:
 ```json
 ["opencode-research-papers", {
   "defaultMaxResults": 15,
-  "defaultSource": "both",
-  "semanticScholarApiKey": "your-api-key-here"
+  "defaultSource": "auto"
 }]
 ```
 
 | Option | Default | What it does |
 |--------|---------|-------------|
 | `defaultMaxResults` | `10` | How many results to return (1 to 50) |
-| `defaultSource` | `"both"` | Which source to search (`arxiv`, `semantic_scholar`, `both`) |
-| `semanticScholarApiKey` | — | Free API key from semanticscholar.org — bypasses the rate limit |
+| `defaultSource` | `"auto"` | Source routing: `auto`, `arxiv`, or `openalex` |
+
+### Source routing
+
+The `auto` default picks the best source for each filter:
+
+| Filter | Primary source | Fallback |
+|--------|---------------|----------|
+| `latest` | arXiv | OpenAlex |
+| `top_cited` | OpenAlex | arXiv |
+| `trending` | OpenAlex | arXiv |
+
+You can override with `source: "arxiv"` or `source: "openalex"` to force a single source.
 
 ## Data Sources
 
 ### arXiv
 
-Uses the public [arXiv Atom API](http://export.arxiv.org/api/query). Searches by keyword and sorts by submission date. No signup required.
+Used for fresh preprints, especially AI, CS, math, and physics. Provides direct PDF links and clean metadata. No signup required. The plugin enforces arXiv's public API rate limit of one request per 3 seconds.
 
-### Semantic Scholar
+### OpenAlex
 
-Uses the public [Semantic Scholar Graph API](https://api.semanticscholar.org/). Returns citation counts and open-access PDF links where the data is available.
-
-The free tier has a tight rate limit (1 req/s). If you see frequent 429 errors, get a free API key at [semanticscholar.org/product/api](https://www.semanticscholar.org/product/api) and pass it via the `semanticScholarApiKey` config option. With an API key the limit jumps to 100 req/s.
+Used for broader scholarly search, citation counts, DOI metadata, and open-access links. Basic search works without an API key at 10 requests per second.
 
 ## Error Handling
 
-If one source is down or rate limited, the plugin shows what the other source returned along with the specific HTTP error (e.g., `Semantic Scholar API 429: Too Many Requests`). If both fail, you get a single consolidated message with the error from each. No crashes, no dropped responses.
-
-Semantic Scholar returns 429s aggressively on the free tier. The plugin retries up to two times with a 1s/2s backoff. To eliminate rate limiting entirely, pass a free API key via the `semanticScholarApiKey` config option.
+If one source is down or rate limited, the plugin shows what the other source returned along with the specific HTTP error. If both fail, you get a single consolidated message. No crashes.
 
 ## License
 
