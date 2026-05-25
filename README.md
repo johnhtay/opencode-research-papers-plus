@@ -44,15 +44,15 @@ You can pass options via the tuple form in `opencode.json`:
 
 ```json
 ["opencode-research-papers", {
-  "default_max_results": 15,
-  "default_source": "both"
+  "defaultMaxResults": 15,
+  "defaultSource": "both"
 }]
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `default_max_results` | `10` | Default result cap (1–50) |
-| `default_source` | `"both"` | Default data source (`arxiv`, `semantic_scholar`, `both`) |
+| `defaultMaxResults` | `10` | Default result cap (1–50) |
+| `defaultSource` | `"both"` | Default data source (`arxiv`, `semantic_scholar`, `both`) |
 
 ## Data Sources
 
