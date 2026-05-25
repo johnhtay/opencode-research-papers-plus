@@ -1,0 +1,43 @@
+{
+  "name": "opencode-research-papers",
+  "version": "1.0.0",
+  "description": "Opencode plugin to fetch latest and trending research papers from arXiv and Papers with Code",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saim-x/opencode-research-papers.git"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "arxiv",
+    "paperswithcode",
+    "research",
+    "papers"
+  ],
+  "author": "saim-x",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/saim-x/opencode-research-papers/issues"
+  },
+  "homepage": "https://github.com/saim-x/opencode-research-papers#readme",
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.15.10",
+    "fast-xml-parser": "^5.2.5",
+    "zod": "^3.25.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.15",
+    "typescript": "^5.8.3"
+  }
+}
