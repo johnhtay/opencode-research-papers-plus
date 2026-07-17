@@ -1,6 +1,17 @@
 import type { PaperResult } from "../types.js";
 
 const OA_API_URL = "https://api.openalex.org/works";
+const OA_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 function sortByFilter(filter: string): string {
   switch (filter) {
@@ -26,7 +37,7 @@ export async function searchOpenAlex(
     url += `&filter=publication_year:${encodeURIComponent(year)}`;
   }
 
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, OA_TIMEOUT_MS);
 
   if (!response.ok) {
     throw new Error(`OpenAlex API ${response.status}: ${response.statusText}`);

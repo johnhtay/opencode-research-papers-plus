@@ -2,35 +2,44 @@ import { XMLParser } from "fast-xml-parser";
 import type { PaperResult } from "../types.js";
 
 const ARXIV_API_URL = "http://export.arxiv.org/api/query";
+const ARXIV_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      headers: { Accept: "application/atom+xml" },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 export async function searchArxiv(
   query: string,
   maxResults: number,
   sortBy: "submittedDate" | "lastUpdatedDate" = "submittedDate"
 ): Promise<PaperResult[]> {
-  const params = new URLSearchParams();
-
-  // Phrase match for the full query (Lucene: all:"query text")
   const trimmed = query.trim();
-  if (trimmed.includes(" ")) {
-    params.append("search_query", `all:"${trimmed}"`);
-  }
-
-  // Individual term matches as AND fallback
   const terms = trimmed.split(/\s+/).filter(Boolean);
-  for (const term of terms) {
-    params.append("search_query", `all:${term}`);
-  }
 
+  // Build a single search_query parameter
+  // Use phrase match for multi-word queries, single term for single-word queries
+  const searchQuery = terms.length > 1
+    ? `all:"${trimmed}"`
+    : `all:${terms[0] || trimmed}`;
+
+  const params = new URLSearchParams();
+  params.append("search_query", searchQuery);
   params.append("sortBy", sortBy);
   params.append("sortOrder", "descending");
   params.append("max_results", String(maxResults));
 
   const url = `${ARXIV_API_URL}?${params.toString()}`;
 
-  const response = await fetch(url, {
-    headers: { Accept: "application/atom+xml" },
-  });
+  const response = await fetchWithTimeout(url, ARXIV_TIMEOUT_MS);
 
   if (!response.ok) {
     throw new Error(`arXiv API ${response.status}: ${response.statusText}`);

@@ -47,16 +47,41 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
       let arxivError: string | null = null;
       let oaError: string | null = null;
 
-      if (routing.useArxiv) {
+      if (routing.useArxiv && routing.useOpenAlex) {
+        // Fetch both sources in parallel
+        const [arxivResult, oaResult] = await Promise.allSettled([
+          (async () => {
+            const sortBy = args.filter === "latest" ? "submittedDate" : "lastUpdatedDate";
+            return throttledSearchArxiv(args.query, maxResults * fetchMultiplier, sortBy);
+          })(),
+          (async () => {
+            const oaSort = args.filter === "top_cited" || args.filter === "trending"
+              ? "top_cited"
+              : "latest";
+            const oaYear = dateRange === "year" ? yearParam() : undefined;
+            return searchOpenAlex(args.query, maxResults, oaSort, oaYear);
+          })(),
+        ]);
+
+        if (arxivResult.status === "fulfilled") {
+          arxivResults = arxivResult.value;
+        } else {
+          arxivError = arxivResult.reason instanceof Error ? arxivResult.reason.message : String(arxivResult.reason);
+        }
+
+        if (oaResult.status === "fulfilled") {
+          oaResults = oaResult.value;
+        } else {
+          oaError = oaResult.reason instanceof Error ? oaResult.reason.message : String(oaResult.reason);
+        }
+      } else if (routing.useArxiv) {
         try {
           const sortBy = args.filter === "latest" ? "submittedDate" : "lastUpdatedDate";
           arxivResults = await throttledSearchArxiv(args.query, maxResults * fetchMultiplier, sortBy);
         } catch (err) {
           arxivError = err instanceof Error ? err.message : String(err);
         }
-      }
-
-      if (routing.useOpenAlex) {
+      } else if (routing.useOpenAlex) {
         try {
           const oaSort = args.filter === "top_cited" || args.filter === "trending"
             ? "top_cited"
