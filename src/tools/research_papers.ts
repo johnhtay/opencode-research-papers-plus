@@ -3,6 +3,7 @@ import type { PaperResult, PluginOptions } from "../types.js";
 import { searchArxiv } from "../sources/arxiv.js";
 import { searchOpenAlex } from "../sources/openalex.js";
 import { formatResults } from "../formatters/markdown.js";
+import { getSearchTerms } from "../utils/query.js";
 
 let lastArxivRequest = 0;
 const ARXIV_COOLDOWN_MS = 3100;
@@ -285,38 +286,24 @@ function annotateMatches(papers: PaperResult[], query: string): void {
   }
 }
 
-function strictFilter(papers: PaperResult[], query: string): PaperResult[] {
-  const terms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
+export function strictFilter(papers: PaperResult[], query: string): PaperResult[] {
+  const terms = getSearchTerms(query);
   if (terms.length === 0) return papers;
 
-  const anchorSynonyms: Record<string, string[]> = {
-    retinal: ["retinal", "fundus", "retina", "ophthalmic", "eye"],
-    brain: ["brain", "cerebral", "neural", "neuro"],
-    medical: ["medical", "clinical", "healthcare"],
-    graph: ["graph", "gnn", "graph neural"],
-    remote: ["remote", "satellite", "aerial", "sensing"],
-    scene: ["scene", "scene text", "text detection"],
-  };
-
-  const anchorGroup = anchorSynonyms[terms[0]] ?? [terms[0]];
-  const minTotal = Math.max(1, Math.ceil(terms.length * 0.66));
+  const minTotal = Math.max(1, Math.ceil(terms.length * 0.5));
 
   return papers.filter((paper) => {
     const ti = paper.title.toLowerCase();
     const ab = (paper.abstract || "").toLowerCase();
+    const text = ti + " " + ab;
 
-    let anchorMatched = false;
     let totalMatched = 0;
-
     for (const term of terms) {
-      if (ti.includes(term) || ab.includes(term)) {
+      const t = term.toLowerCase();
+      // Match the term as a substring or as a hyphenated variant
+      if (text.includes(t) || text.includes(t.replace(/\s+/g, "-"))) {
         totalMatched++;
-        if (anchorGroup.includes(term)) anchorMatched = true;
       }
-    }
-
-    if (terms.length >= 3) {
-      return anchorMatched && totalMatched >= minTotal;
     }
 
     return totalMatched >= minTotal;

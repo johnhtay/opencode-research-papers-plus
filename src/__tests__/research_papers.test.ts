@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mergeAndDeduplicate, normalizeTitle } from "../tools/research_papers.js";
+import { mergeAndDeduplicate, normalizeTitle, strictFilter } from "../tools/research_papers.js";
 import type { PaperResult } from "../types.js";
 
 function makePaper(overrides: Partial<PaperResult> = {}): PaperResult {
@@ -96,5 +96,46 @@ describe("mergeAndDeduplicate", () => {
     const merged = mergeAndDeduplicate(a, o, routing(true));
     expect(merged).toHaveLength(1);
     expect(merged[0].source).toBe("arXiv");
+  });
+});
+
+describe("strictFilter", () => {
+  it("keeps papers matching expanded acronym terms", () => {
+    const papers: PaperResult[] = [
+      makePaper({
+        title: "Better and Faster Large Language Models via Multi-token Prediction",
+        abstract: "We study multi-token prediction for language models.",
+      }),
+      makePaper({ title: "Unrelated Quantum Physics Paper", abstract: "Quantum stuff" }),
+    ];
+
+    const filtered = strictFilter(papers, "MTP in LLMs");
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].title).toContain("Multi-token Prediction");
+  });
+
+  it("does not filter out everything for short acronym queries", () => {
+    const papers: PaperResult[] = [
+      makePaper({ title: "Large Language Models", abstract: "LLM survey" }),
+      makePaper({ title: "Robotics", abstract: "Robots" }),
+    ];
+
+    const filtered = strictFilter(papers, "LLMs");
+    expect(filtered).toHaveLength(1);
+  });
+
+  it("matches hyphenated variants", () => {
+    const papers: PaperResult[] = [
+      makePaper({ title: "Multi-token Prediction", abstract: "" }),
+      makePaper({ title: "Unrelated", abstract: "" }),
+    ];
+
+    const filtered = strictFilter(papers, "MTP");
+    expect(filtered).toHaveLength(1);
+  });
+
+  it("returns all papers when no significant terms", () => {
+    const papers: PaperResult[] = [makePaper({ title: "A" }), makePaper({ title: "B" })];
+    expect(strictFilter(papers, "a an the")).toHaveLength(2);
   });
 });

@@ -108,6 +108,13 @@ describe("searchOpenAlex", () => {
     expect(url).toContain("sort=publication_date%3Adesc");
   });
 
+  it("expands acronyms in the search query", async () => {
+    await searchOpenAlex("MTP in LLMs", 10, "latest");
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain("search=multi-token%20prediction%20large%20language%20models");
+  });
+
   it("uses cited_by_count:desc sort for top_cited", async () => {
     await searchOpenAlex("test", 5, "top_cited");
 

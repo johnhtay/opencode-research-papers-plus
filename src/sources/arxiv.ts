@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import type { PaperResult } from "../types.js";
+import { buildArxivSearchQuery } from "../utils/query.js";
 
 const ARXIV_API_URL = "http://export.arxiv.org/api/query";
 const ARXIV_TIMEOUT_MS = 15000;
@@ -22,14 +23,7 @@ export async function searchArxiv(
   maxResults: number,
   sortBy: "submittedDate" | "lastUpdatedDate" = "submittedDate"
 ): Promise<PaperResult[]> {
-  const trimmed = query.trim();
-  const terms = trimmed.split(/\s+/).filter(Boolean);
-
-  // Build a single search_query parameter
-  // Use phrase match for multi-word queries, single term for single-word queries
-  const searchQuery = terms.length > 1
-    ? `all:"${trimmed}"`
-    : `all:${terms[0] || trimmed}`;
+  const searchQuery = buildArxivSearchQuery(query);
 
   const params = new URLSearchParams();
   params.append("search_query", searchQuery);
