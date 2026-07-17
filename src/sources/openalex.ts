@@ -1,5 +1,4 @@
 import type { PaperResult } from "../types.js";
-import { buildOpenAlexSearchQuery } from "../utils/query.js";
 
 const OA_API_URL = "https://api.openalex.org/works";
 const OA_TIMEOUT_MS = 15000;
@@ -31,9 +30,8 @@ export async function searchOpenAlex(
   filter: string = "latest",
   year?: string
 ): Promise<PaperResult[]> {
-  const searchQuery = buildOpenAlexSearchQuery(query);
   const sort = sortByFilter(filter);
-  let url = `${OA_API_URL}?search=${encodeURIComponent(searchQuery)}&sort=${encodeURIComponent(sort)}&per_page=${maxResults}`;
+  let url = `${OA_API_URL}?search=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}&per_page=${maxResults}`;
 
   if (year) {
     url += `&filter=publication_year:${encodeURIComponent(year)}`;

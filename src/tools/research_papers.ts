@@ -3,7 +3,6 @@ import type { PaperResult, PluginOptions } from "../types.js";
 import { searchArxiv } from "../sources/arxiv.js";
 import { searchOpenAlex } from "../sources/openalex.js";
 import { formatResults } from "../formatters/markdown.js";
-import { getSearchTerms } from "../utils/query.js";
 
 let lastArxivRequest = 0;
 const ARXIV_COOLDOWN_MS = 3100;
@@ -27,9 +26,9 @@ export function createResearchPapersTool(options: PluginOptions = {}): ToolDefin
 
   return tool({
     description:
-      "Search for latest, trending, or top-cited research papers on a computer science topic from arXiv and OpenAlex. Returns a formatted list with titles, authors, dates, PDF links, and citation counts.",
+      "Search for latest, trending, or top-cited research papers on a topic from arXiv and OpenAlex. Returns a formatted list with titles, authors, dates, PDF links, and citation counts. For best recall, expand acronyms and abbreviations in the user's request into the full technical terms used in paper titles and abstracts (e.g., 'MTP in LLMs' should be passed as 'Multi-Token Prediction in Large Language Models').",
     args: {
-      query: tool.schema.string().describe("The research field or topic, e.g. 'Scene Text Recognition'"),
+      query: tool.schema.string().describe("The research field or topic using full technical terms. Expand acronyms and abbreviations (e.g., 'Multi-Token Prediction in Large Language Models' instead of 'MTP in LLMs')."),
       source: tool.schema.enum(["arxiv", "openalex", "semantic_scholar", "auto"]).default(defaultSource).describe("Which source(s) to query. 'semantic_scholar' is a deprecated alias for 'openalex'."),
       filter: tool.schema.enum(["latest", "trending", "top_cited"]).default("latest").describe("Sorting/filtering strategy"),
       max_results: tool.schema.number().min(1).max(50).default(defaultMaxResults).describe("Maximum number of papers to return"),
@@ -286,24 +285,38 @@ function annotateMatches(papers: PaperResult[], query: string): void {
   }
 }
 
-export function strictFilter(papers: PaperResult[], query: string): PaperResult[] {
-  const terms = getSearchTerms(query);
+function strictFilter(papers: PaperResult[], query: string): PaperResult[] {
+  const terms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
   if (terms.length === 0) return papers;
 
-  const minTotal = Math.max(1, Math.ceil(terms.length * 0.5));
+  const anchorSynonyms: Record<string, string[]> = {
+    retinal: ["retinal", "fundus", "retina", "ophthalmic", "eye"],
+    brain: ["brain", "cerebral", "neural", "neuro"],
+    medical: ["medical", "clinical", "healthcare"],
+    graph: ["graph", "gnn", "graph neural"],
+    remote: ["remote", "satellite", "aerial", "sensing"],
+    scene: ["scene", "scene text", "text detection"],
+  };
+
+  const anchorGroup = anchorSynonyms[terms[0]] ?? [terms[0]];
+  const minTotal = Math.max(1, Math.ceil(terms.length * 0.66));
 
   return papers.filter((paper) => {
     const ti = paper.title.toLowerCase();
     const ab = (paper.abstract || "").toLowerCase();
-    const text = ti + " " + ab;
 
+    let anchorMatched = false;
     let totalMatched = 0;
+
     for (const term of terms) {
-      const t = term.toLowerCase();
-      // Match the term as a substring or as a hyphenated variant
-      if (text.includes(t) || text.includes(t.replace(/\s+/g, "-"))) {
+      if (ti.includes(term) || ab.includes(term)) {
         totalMatched++;
+        if (anchorGroup.includes(term)) anchorMatched = true;
       }
+    }
+
+    if (terms.length >= 3) {
+      return anchorMatched && totalMatched >= minTotal;
     }
 
     return totalMatched >= minTotal;

@@ -89,25 +89,22 @@ describe("searchArxiv", () => {
     vi.unstubAllGlobals();
   });
 
-  it("constructs URL with OR terms for multi-word queries", async () => {
+  it("constructs URL with single search_query parameter", async () => {
     await searchArxiv("deep learning", 5, "submittedDate");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("search_query=all%3Adeep+OR+all%3Alearning");
+    expect(url).toContain("search_query=all%3A%22deep+learning%22");
     expect(url).toContain("sortBy=submittedDate");
     expect(url).toContain("sortOrder=descending");
     expect(url).toContain("max_results=5");
   });
 
-  it("expands acronyms and includes them in the query", async () => {
-    await searchArxiv("MTP in LLMs", 5, "submittedDate");
+  it("uses single term without quotes for single-word queries", async () => {
+    await searchArxiv("transformer", 5, "submittedDate");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("all%3A%22multi-token+prediction%22");
-    expect(url).toContain("all%3A%22multi-token-prediction%22");
-    expect(url).toContain("all%3Amtp");
-    expect(url).toContain("all%3A%22large+language+models%22");
-    expect(url).toContain("all%3Allms");
+    expect(url).toContain("search_query=all%3Atransformer");
+    expect(url).not.toContain("%22");
   });
 
   it("does not include date filter in query", async () => {
