@@ -1,6 +1,6 @@
 {
   "name": "opencode-research-papers",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "OpenCode plugin to search research papers from arXiv and OpenAlex with filtering by recency and citation impact",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
