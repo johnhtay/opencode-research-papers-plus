@@ -1,7 +1,6 @@
 # opencode-research-papers-plus
 
 [![OpenCode plugin](https://img.shields.io/badge/OpenCode-plugin-blue.svg)](https://opencode.ai/docs/plugins/)
-[![npm version](https://img.shields.io/npm/v/opencode-research-papers-plus.svg)](https://www.npmjs.com/package/opencode-research-papers-plus)
 [![CI](https://github.com/johnhtay/opencode-research-papers-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/johnhtay/opencode-research-papers-plus/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
@@ -11,7 +10,9 @@ An [opencode](https://opencode.ai) plugin that adds a `research_papers` tool. Th
 
 This is a fork of [opencode-research-papers](https://github.com/saim-x/opencode-research-papers) by [saim-x](https://github.com/saim-x), extended with bioRxiv/medRxiv preprints and PubMed biomedical literature. See [Credits](#credits).
 
-Install. Restart. Ask for papers. It works.
+Clone. Build. Point your config at `dist/index.js`. Restart. Ask for papers.
+
+> **Not on npm yet.** This package is **not published to the npm registry**. Until it is, install it locally via a `file://` plugin entry (below). Do **not** put the bare name `"opencode-research-papers-plus"` in your `plugin` array — opencode will try to install it from npm, receive a 404, and fail silently: the `research_papers` tool simply never appears. See [Troubleshooting](#troubleshooting).
 
 ## Features
 
@@ -26,21 +27,57 @@ Install. Restart. Ask for papers. It works.
 
 ## Installation
 
-Add this to your `opencode.json`:
+Local build only for now (npm release pending). Requires [Bun](https://bun.sh) — the same runtime opencode uses; no Node.js or npm is needed.
 
-```json
+### 1. Clone and build
+
+```bash
+git clone https://github.com/johnhtay/opencode-research-papers-plus.git
+cd opencode-research-papers-plus
+bun install     # installs fast-xml-parser + @opencode-ai/plugin into ./node_modules
+bun run build   # compiles src/ → dist/ (tsc)
+```
+
+Keep the clone intact: at load time the plugin imports `fast-xml-parser` and `@opencode-ai/plugin` from the repo's own `node_modules/`, so don't move or delete it.
+
+### 2. Register the plugin in your opencode config
+
+Add a `file://` entry with an **absolute** path to the built entry point, in either your global config (`~/.config/opencode/opencode.json` or `opencode.jsonc`) or a project-level `opencode.json`:
+
+```jsonc
 {
+  "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "opencode-research-papers-plus"
+    "file:///absolute/path/to/opencode-research-papers-plus/dist/index.js"
   ]
 }
 ```
 
-Restart opencode. The tool registers automatically.
+opencode imports `file://` entries directly from disk at startup — no registry, no cache step.
 
-### Updating
+### 3. Restart opencode
 
-OpenCode caches plugin packages and does not auto-update on restart. After updating to a new version, clear the cache before restarting:
+Config and plugins are only read at startup, so quit and relaunch. Then ask for papers.
+
+## Updating
+
+A `file://` plugin is loaded fresh from disk on every start, so there is no cache to clear:
+
+1. `git pull` in the repo (or edit locally)
+2. `bun run build`
+3. Restart opencode
+
+## Installing from npm (once published)
+
+Once this package is published to the npm registry, the entry simplifies to the package name:
+
+```json
+{
+  "plugin": ["opencode-research-papers-plus"]
+}
+```
+
+opencode installs npm-spec plugins automatically with Bun at startup and caches them under `~/.cache/opencode/packages/<name>@<version>`. Cached plugin packages do **not** auto-update on restart, so after publishing/updating to a new version, clear the cache before restarting:
 
 **Windows (PowerShell):**
 ```powershell
@@ -53,6 +90,18 @@ rm -rf ~/.cache/opencode/packages/opencode-research-papers-plus@latest
 ```
 
 Then restart opencode.
+
+## Troubleshooting
+
+- **`research_papers` tool doesn't appear.** If your config lists the bare package name while the package is unpublished, opencode's npm plugin loader creates `~/.cache/opencode/packages/opencode-research-papers-plus@latest`, runs `bun add opencode-research-papers-plus` inside it, gets a 404 from the registry, and leaves the directory empty — plugin loading fails silently. Remove the stale empty directory, use the `file://` entry above, and restart.
+- **Don't `bun add` the local path into `~/.config/opencode`.** opencode manages that directory itself and runs `bun install` there at startup, re-syncing `package.json`/`node_modules`. A manually added local-path dependency gets pruned and the plugin disappears on the next restart (this exact failure was observed in practice). The `file://` config entry is the reliable local mechanism; it bypasses npm resolution entirely.
+- **Verify the entry point loads** (outside opencode):
+  ```bash
+  bun -e "import('file:///absolute/path/to/opencode-research-papers-plus/dist/index.js').then(async m => console.log(Object.keys(await m.default({}, {}) ?? {})))"
+  # → [ 'tool' ]  (the `research_papers` tool lives inside)
+  ```
+- **Environment variables.** Inside opencode, plugin processes see `OPENCODE=1` and `OPENCODE_PID`. Config file locations can be overridden with `OPENCODE_CONFIG` (single file) and `OPENCODE_CONFIG_DIR` (directory with agents/commands/plugins), and config values support `{env:VAR}` substitution. See the [config docs](https://opencode.ai/docs/config/).
+- **Bun-only environments.** On machines without Node.js/npm in `PATH`, use `bun run build`, `bun run typecheck` (`tsc --noEmit`), and `bun run test` (vitest) — they all resolve the local toolchain from `node_modules/.bin`.
 
 ## Usage
 
@@ -72,12 +121,13 @@ This is an AI tool — you do not invoke it with a slash command. Ask naturally:
 
 ## Configuration
 
-Pass options as a tuple:
+Plugin options are passed as a tuple — the second element is the options object (same form for an npm package name once published):
 
-```json
-["opencode-research-papers-plus", {
+```jsonc
+["file:///absolute/path/to/opencode-research-papers-plus/dist/index.js", {
   "defaultMaxResults": 15,
-  "defaultSource": "auto"
+  "defaultSource": "auto",
+  "pubmedEmail": "you@example.com"
 }]
 ```
 
@@ -142,6 +192,7 @@ MIT — see [LICENSE](./LICENSE). Original work Copyright (c) 2026 Muhammad Saim
 
 Potential future additions:
 
+- **npm release** — publish to the registry so the plain `"plugin": ["opencode-research-papers-plus"]` entry works everywhere.
 - **GitHub paper-list repos** — Search curated repository lists (e.g. `scene-text-detection-recognition-papers`) alongside paper results.
 - **Citation counts for PubMed** — Cross-reference PubMed results with OpenAlex via batch DOI lookup to enrich citation data and support `top_cited`.
 - **Native bioRxiv mode** — Direct api.biorxiv.org queries for freshest preprints (the official API lacks keyword search, so this would be date-window based with local filtering).
