@@ -1,7 +1,7 @@
 {
-  "name": "opencode-research-papers",
+  "name": "opencode-research-papers-plus",
   "version": "1.4.8",
-  "description": "OpenCode plugin to search research papers from arXiv and OpenAlex with filtering by recency and citation impact",
+  "description": "OpenCode plugin to search research papers from arXiv, OpenAlex, bioRxiv, and PubMed with filtering by recency and citation impact",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -18,22 +18,27 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/saim-x/opencode-research-papers.git"
+    "url": "git+https://github.com/johnhtay/opencode-research-papers-plus.git"
   },
   "keywords": [
     "opencode",
     "opencode-plugin",
     "arxiv",
     "openalex",
+    "biorxiv",
+    "pubmed",
     "research",
     "papers"
   ],
-  "author": "saim-x",
+  "author": "John H. Tay",
+  "contributors": [
+    "Muhammad Saim (https://github.com/saim-x)"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/saim-x/opencode-research-papers/issues"
+    "url": "https://github.com/johnhtay/opencode-research-papers-plus/issues"
   },
-  "homepage": "https://github.com/saim-x/opencode-research-papers#readme",
+  "homepage": "https://github.com/johnhtay/opencode-research-papers-plus#readme",
   "dependencies": {
     "@opencode-ai/plugin": "^1.15.10",
     "fast-xml-parser": "^5.2.5"

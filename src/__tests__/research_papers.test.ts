@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mergeAndDeduplicate, normalizeTitle } from "../tools/research_papers.js";
+import { deduplicateOrdered, normalizeTitle } from "../tools/research_papers.js";
 import type { PaperResult } from "../types.js";
 
 function makePaper(overrides: Partial<PaperResult> = {}): PaperResult {
@@ -10,10 +10,6 @@ function makePaper(overrides: Partial<PaperResult> = {}): PaperResult {
     source: "arXiv",
     ...overrides,
   };
-}
-
-function routing(arxivFirst: boolean) {
-  return { useArxiv: true, useOpenAlex: true, arxivFirst };
 }
 
 describe("normalizeTitle", () => {
@@ -38,7 +34,7 @@ describe("normalizeTitle", () => {
   });
 });
 
-describe("mergeAndDeduplicate", () => {
+describe("deduplicateOrdered", () => {
   const arxiv: PaperResult[] = [
     makePaper({ title: "Paper A", source: "arXiv" }),
     makePaper({ title: "Paper B", source: "arXiv" }),
@@ -48,8 +44,8 @@ describe("mergeAndDeduplicate", () => {
     makePaper({ title: "Paper C", source: "OpenAlex" }),
   ];
 
-  it("puts arXiv first when arxivFirst is true", () => {
-    const merged = mergeAndDeduplicate(arxiv, oa, routing(true));
+  it("keeps group order (arxiv first)", () => {
+    const merged = deduplicateOrdered([arxiv, oa]);
 
     expect(merged).toHaveLength(3);
     expect(merged[0].source).toBe("arXiv");
@@ -57,8 +53,8 @@ describe("mergeAndDeduplicate", () => {
     expect(merged[2].source).toBe("OpenAlex");
   });
 
-  it("puts OpenAlex first when arxivFirst is false", () => {
-    const merged = mergeAndDeduplicate(arxiv, oa, routing(false));
+  it("keeps group order (openalex first)", () => {
+    const merged = deduplicateOrdered([oa, arxiv]);
 
     expect(merged).toHaveLength(3);
     expect(merged[0].source).toBe("OpenAlex");
@@ -70,7 +66,7 @@ describe("mergeAndDeduplicate", () => {
     const a: PaperResult[] = [makePaper({ title: "Deep Learning Paper", source: "arXiv" })];
     const o: PaperResult[] = [makePaper({ title: "deep learning paper", source: "OpenAlex" })];
 
-    const merged = mergeAndDeduplicate(a, o, routing(true));
+    const merged = deduplicateOrdered([a, o]);
     expect(merged).toHaveLength(1);
   });
 
@@ -78,23 +74,52 @@ describe("mergeAndDeduplicate", () => {
     const a: PaperResult[] = [makePaper({ title: "Deep Learning: A Survey", source: "arXiv" })];
     const o: PaperResult[] = [makePaper({ title: "Deep Learning A Survey", source: "OpenAlex" })];
 
-    const merged = mergeAndDeduplicate(a, o, routing(true));
+    const merged = deduplicateOrdered([a, o]);
     expect(merged).toHaveLength(1);
   });
 
-  it("handles empty arrays", () => {
-    expect(mergeAndDeduplicate([], [], routing(true))).toHaveLength(0);
+  it("deduplicates by DOI across sources", () => {
+    const a: PaperResult[] = [makePaper({ title: "Molecular Paper", source: "PubMed", doi: "10.1101/2024.01.01.000001" })];
+    const o: PaperResult[] = [makePaper({ title: "A Completely Different Title", source: "OpenAlex", doi: "https://doi.org/10.1101/2024.01.01.000001" })];
 
-    const onlyArxiv = [makePaper({ title: "Only Paper" })];
-    expect(mergeAndDeduplicate(onlyArxiv, [], routing(true))).toHaveLength(1);
+    const merged = deduplicateOrdered([a, o]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].source).toBe("PubMed");
   });
 
-  it("keeps first occurrence when deduplicating", () => {
+  it("does not deduplicate papers with different DOIs but identical titles", () => {
+    const a: PaperResult[] = [makePaper({ title: "Same Title", doi: "10.1/aaa" })];
+    const o: PaperResult[] = [makePaper({ title: "Same Title", doi: "10.1/bbb" })];
+
+    const merged = deduplicateOrdered([a, o]);
+    expect(merged).toHaveLength(2);
+  });
+
+  it("falls back to title matching when either paper lacks a DOI", () => {
     const a: PaperResult[] = [makePaper({ title: "Same Title", source: "arXiv", published: "2023" })];
     const o: PaperResult[] = [makePaper({ title: "Same Title", source: "OpenAlex", published: "2024" })];
 
-    const merged = mergeAndDeduplicate(a, o, routing(true));
+    const merged = deduplicateOrdered([a, o]);
     expect(merged).toHaveLength(1);
     expect(merged[0].source).toBe("arXiv");
+  });
+
+  it("handles empty arrays", () => {
+    expect(deduplicateOrdered([[], []])).toHaveLength(0);
+
+    const onlyArxiv = [makePaper({ title: "Only Paper" })];
+    expect(deduplicateOrdered([onlyArxiv, []])).toHaveLength(1);
+  });
+
+  it("merges four sources in priority order", () => {
+    const merged = deduplicateOrdered([
+      [makePaper({ title: "A", source: "arXiv" })],
+      [makePaper({ title: "B", source: "OpenAlex" })],
+      [makePaper({ title: "C", source: "bioRxiv" })],
+      [makePaper({ title: "D", source: "PubMed" })],
+    ]);
+
+    expect(merged).toHaveLength(4);
+    expect(merged.map((p) => p.source)).toEqual(["arXiv", "OpenAlex", "bioRxiv", "PubMed"]);
   });
 });

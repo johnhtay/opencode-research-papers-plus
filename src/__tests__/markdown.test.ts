@@ -120,6 +120,41 @@ describe("formatResults", () => {
     expect(output).toContain("- **Authors:** N/A");
   });
 
+  it("renders PubMed-specific fields", () => {
+    const results = [
+      makePaper({
+        source: "PubMed",
+        pmid: "42473636",
+        doi: "10.1016/j.idm.2026.05.010",
+        journal: "Infectious Disease Modelling",
+      }),
+    ];
+    const output = formatResults("epidemiology", "latest", results);
+
+    expect(output).toContain("- **Source:** PubMed");
+    expect(output).toContain("- **Journal:** Infectious Disease Modelling");
+    expect(output).toContain("- **PMID:** 42473636");
+    expect(output).toContain("- **PubMed:** https://pubmed.ncbi.nlm.nih.gov/42473636/");
+    expect(output).toContain("- **DOI:** https://doi.org/10.1016/j.idm.2026.05.010");
+  });
+
+  it("renders bioRxiv source label", () => {
+    const results = [makePaper({ source: "bioRxiv", doi: "10.1101/2024.01.01.000001" })];
+    const output = formatResults("test", "latest", results);
+
+    expect(output).toContain("- **Source:** bioRxiv");
+    expect(output).toContain("- **DOI:** https://doi.org/10.1101/2024.01.01.000001");
+  });
+
+  it("omits PMID, DOI, and Journal lines when not present", () => {
+    const results = [makePaper({ title: "Minimal" })];
+    const output = formatResults("test", "latest", results);
+
+    expect(output).not.toContain("PMID");
+    expect(output).not.toContain("DOI");
+    expect(output).not.toContain("Journal");
+  });
+
   it("numbers multiple papers sequentially", () => {
     const results = [
       makePaper({ title: "Paper A", authors: ["A"] }),

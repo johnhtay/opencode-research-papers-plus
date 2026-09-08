@@ -11,6 +11,8 @@ const mockResponse = {
       ],
       publication_date: "2023-06-15",
       cited_by_count: 150,
+      doi: "https://doi.org/10.1234/example.001",
+      primary_location: { source: { display_name: "Nature" } },
       open_access: { oa_url: "https://example.com/paper.pdf" },
       abstract_inverted_index: {
         This: [0], is: [1], an: [2], abstract: [3],
@@ -38,6 +40,8 @@ describe("parseOAResponse", () => {
     expect(results[0].source).toBe("OpenAlex");
     expect(results[0].citations).toBe(150);
     expect(results[0].pdfUrl).toBe("https://example.com/paper.pdf");
+    expect(results[0].doi).toBe("10.1234/example.001");
+    expect(results[0].journal).toBe("Nature");
     expect(results[0].abstract).toBe("This is an abstract");
 
     expect(results[1].title).toBe("Transformer Networks in NLP");
@@ -126,7 +130,22 @@ describe("searchOpenAlex", () => {
     await searchOpenAlex("test", 10, "latest", "2025-2026");
 
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("filter=publication_year:2025-2026");
+    expect(url).toContain(`filter=${encodeURIComponent("publication_year:2025-2026")}`);
+  });
+
+  it("includes source filter when provided", async () => {
+    await searchOpenAlex("test", 10, "latest", undefined, "S4306402567");
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain(`filter=${encodeURIComponent("primary_location.source.id:S4306402567")}`);
+  });
+
+  it("combines source and year filters with a comma", async () => {
+    await searchOpenAlex("test", 10, "latest", "2025-2026", "S4306402567|S3005729997");
+
+    const url = fetchMock.mock.calls[0][0] as string;
+    const expected = encodeURIComponent("primary_location.source.id:S4306402567|S3005729997,publication_year:2025-2026");
+    expect(url).toContain(`filter=${expected}`);
   });
 
   it("throws with status code on error", async () => {

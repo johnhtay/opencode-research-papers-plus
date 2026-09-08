@@ -35,6 +35,9 @@ export function formatResults(
     lines.push(`- **Authors:** ${authorText || "N/A"}`);
     lines.push(`- **Published:** ${paper.published}`);
     lines.push(`- **Source:** ${paper.source}`);
+    if (paper.journal) {
+      lines.push(`- **Journal:** ${paper.journal}`);
+    }
     if (paper.matchedIn) {
       lines.push(`- **Matched:** ${paper.matchedIn}`);
     }
@@ -44,6 +47,13 @@ export function formatResults(
     if (paper.arxivId) {
       lines.push(`- **arXiv ID:** ${paper.arxivId}`);
       lines.push(`- **arXiv:** https://arxiv.org/abs/${paper.arxivId}`);
+    }
+    if (paper.pmid) {
+      lines.push(`- **PMID:** ${paper.pmid}`);
+      lines.push(`- **PubMed:** https://pubmed.ncbi.nlm.nih.gov/${paper.pmid}/`);
+    }
+    if (paper.doi) {
+      lines.push(`- **DOI:** https://doi.org/${paper.doi}`);
     }
     if (paper.pdfUrl) {
       lines.push(`- **PDF:** ${paper.pdfUrl}`);
